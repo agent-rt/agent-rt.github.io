@@ -10,42 +10,37 @@ translate to structured queries.
 
 ## 1. Design
 
-> Make a synap app "ledger" with entity_types "expense" and "income".
-> Both have: amount (number, required), currency (text, default "JPY"),
-> category (text), description (text, vectorized), occurred_at (date,
-> required), account (text).
+> Make a synap app "ledger" with two entity types — "expense" and
+> "income". Both have amount, currency, description (vectorized),
+> occurred_at, account.
 
 ```json
 {"tool": "init_app", "args": {
-  "name": "ledger",
-  "description": "Personal ledger — expenses and income",
+  "app_id": "ledger",
   "types": {
-    "expense": {
-      "fields": {
-        "amount":      {"type": "number", "required": true},
-        "currency":    {"type": "text",   "default":  "JPY"},
-        "category":    {"type": "text"},
-        "description": {"type": "text",   "vectorized": true},
-        "occurred_at": {"type": "date",   "required": true},
-        "account":     {"type": "text"}
-      }
-    },
-    "income": {
-      "fields": {
-        "amount":      {"type": "number", "required": true},
-        "currency":    {"type": "text",   "default":  "JPY"},
-        "source":      {"type": "text"},
-        "description": {"type": "text",   "vectorized": true},
-        "occurred_at": {"type": "date",   "required": true},
-        "account":     {"type": "text"}
-      }
-    }
+    "expense": [
+      {"name": "amount",      "value_type": "number", "indexed": true},
+      {"name": "currency",    "value_type": "string"},
+      {"name": "category",    "value_type": "string", "indexed": true},
+      {"name": "description", "value_type": "string", "vectorized": true},
+      {"name": "occurred_at", "value_type": "string", "indexed": true},
+      {"name": "account",     "value_type": "string"}
+    ],
+    "income": [
+      {"name": "amount",      "value_type": "number", "indexed": true},
+      {"name": "currency",    "value_type": "string"},
+      {"name": "source",      "value_type": "string", "indexed": true},
+      {"name": "description", "value_type": "string", "vectorized": true},
+      {"name": "occurred_at", "value_type": "string", "indexed": true},
+      {"name": "account",     "value_type": "string"}
+    ]
   }
 }}
 ```
 
-One app, two entity types. Each type has its own schema, vec table, and
+One app, two entity types. Each type gets its own schema, vec table, and
 FTS table — but they share an `app_id`, so cross-type queries work.
+Dates stay as ISO 8601 `string`.
 
 ## 2. Record transactions
 
@@ -57,7 +52,7 @@ FTS table — but they share an `app_id`, so cross-type queries work.
   "ops": [{
     "op": "create",
     "entity_type": "expense",
-    "entity": {
+    "data": {
       "amount": 1200, "currency": "JPY",
       "category": "food", "description": "Lunch at Ichiran",
       "occurred_at": "2026-04-19", "account": "SMBC card"
@@ -74,7 +69,7 @@ FTS table — but they share an `app_id`, so cross-type queries work.
   "ops": [{
     "op": "create",
     "entity_type": "income",
-    "entity": {
+    "data": {
       "amount": 500000, "currency": "JPY",
       "source": "Acme Corp", "description": "Salary April 2026",
       "occurred_at": "2026-04-25", "account": "SMBC main"
@@ -89,34 +84,44 @@ FTS table — but they share an `app_id`, so cross-type queries work.
 
 ```json
 {"tool": "query", "args": {
-  "app_id": "ledger",
+  "app_id":      "ledger",
   "entity_type": "expense",
   "filters": [
-    {"field": "category",    "op": "eq", "value": "food"},
-    {"field": "occurred_at", "op": "gte", "value": "2026-04-01"},
-    {"field": "occurred_at", "op": "lt",  "value": "2026-05-01"}
+    {"field": "category",    "op": "eq",      "value": "food"},
+    {"field": "occurred_at", "op": "between", "value": ["2026-04-01", "2026-04-30"]}
   ],
-  "select": ["amount", "description", "occurred_at"]
+  "fields": ["amount", "description", "occurred_at"]
 }}
 ```
 
-Agent sums `amount` client-side from TSV. Synap doesn't do SQL aggregates
-in 0.1 — projection + iteration is the pattern.
+The agent sums `amount` client-side from TSV. Synap doesn't do SQL
+aggregates in 0.1 — projection + iteration is the pattern.
+
+Or, if you just want the count and a grouped breakdown:
+
+```json
+{"tool": "query", "args": {
+  "app_id":      "ledger",
+  "entity_type": "expense",
+  "filters": [{"field": "occurred_at", "op": "between",
+               "value": ["2026-04-01", "2026-04-30"]}],
+  "count_only": true,
+  "group_by":   "category"
+}}
+```
 
 ## 4. Cross-type net position
 
 > What's my net for April?
 
 Two queries (expenses + income), agent subtracts totals. Or a single
-query over both types by omitting `entity_type`:
+cross-type query by omitting `entity_type`:
 
 ```json
 {"tool": "query", "args": {
   "app_id": "ledger",
-  "filters": [
-    {"field": "occurred_at", "op": "gte", "value": "2026-04-01"},
-    {"field": "occurred_at", "op": "lt",  "value": "2026-05-01"}
-  ]
+  "filters": [{"field": "occurred_at", "op": "between",
+               "value": ["2026-04-01", "2026-04-30"]}]
 }}
 ```
 
@@ -130,13 +135,13 @@ Result includes an `entity_type` column — partition client-side.
 {"tool": "search", "args": {
   "app_id":      "ledger",
   "entity_type": "expense",
-  "query":       "music streaming subscription",
-  "rank":        "relevance"
+  "query_text":  "music streaming subscription",
+  "mode":        "semantic"
 }}
 ```
 
-Finds a "Spotify Family" line item even if you wrote "Spotify" in the
-description without the word "music" or "subscription".
+Finds a "Spotify Family" line even if the description says only
+"Spotify" — embeddings capture meaning, not just tokens.
 
 ## 6. Monthly summary as a prompt
 
@@ -145,15 +150,17 @@ description without the word "music" or "subscription".
 The agent orchestrates:
 
 1. `query` all April expenses + incomes
-2. Group by category client-side
-3. Compose prose ("spent ¥48,200 on food (13 meals out), ¥9,400 on
+2. Group by category client-side (or use `count_only + group_by` for
+   counts, then one query per category for totals)
+3. Compose prose ("spent ¥48,200 on food across 13 meals out, ¥9,400 on
    transport, ¥6,500 on streaming…")
 
 ## Design tips
 
-- Use `default` on currency so the agent doesn't need to specify every
-  time.
 - Vectorize `description` but not `category` — categories are discrete
-  labels; fuzzy matching them produces noise.
-- For recurring transactions, consider an `is_recurring: bool` field and
-  a separate "templates" entity_type you copy from.
+  labels; fuzzy matching them produces noise. Filter exactly with
+  `op: "eq"`.
+- `indexed: true` on `amount` / `category` / `occurred_at` — the fields
+  you sort and filter on all the time.
+- For recurring transactions, a `templates` type alongside `expense` /
+  `income` lets the agent copy from saved shapes.

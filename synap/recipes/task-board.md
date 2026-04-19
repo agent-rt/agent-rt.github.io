@@ -9,25 +9,32 @@ notes.
 
 ## 1. Design
 
-> Make a synap app "tasks". Fields: title (required), status (enum:
-> todo/doing/done/cancelled), priority (enum: low/med/high),
-> due (date), tags (multi), notes (text, vectorized), created_at (date).
+> Make a synap app "tasks" with: title, status (enum todo/doing/done/
+> cancelled), priority (enum low/med/high), due, tags (array),
+> notes (vectorized), created_at.
 
 ```json
 {"tool": "init_app", "args": {
-  "name": "tasks",
-  "description": "Personal task board",
-  "fields": {
-    "title":      {"type": "text", "required": true},
-    "status":     {"type": "enum", "values": ["todo", "doing", "done", "cancelled"], "default": "todo"},
-    "priority":   {"type": "enum", "values": ["low", "med", "high"], "default": "med"},
-    "due":        {"type": "date"},
-    "tags":       {"type": "text", "multi": true},
-    "notes":      {"type": "text", "vectorized": true},
-    "created_at": {"type": "date"}
+  "app_id": "tasks",
+  "types": {
+    "task": [
+      {"name": "title",      "value_type": "string", "indexed": true},
+      {"name": "status",     "value_type": "enum",
+       "enum_values": ["todo", "doing", "done", "cancelled"], "indexed": true},
+      {"name": "priority",   "value_type": "enum",
+       "enum_values": ["low", "med", "high"]},
+      {"name": "due",        "value_type": "string", "indexed": true},
+      {"name": "tags",       "value_type": "array"},
+      {"name": "notes",      "value_type": "string", "vectorized": true},
+      {"name": "created_at", "value_type": "string"}
+    ]
   }
 }}
 ```
+
+Dates live as ISO 8601 `string` — lexicographic compare gives correct
+ranges. `indexed: true` on `status` and `due` because those are the
+common filter/sort axes.
 
 ## 2. Add tasks
 
@@ -40,16 +47,16 @@ notes.
 {"tool": "write", "args": {
   "app_id": "tasks",
   "ops": [
-    {"op": "create", "entity": {
-      "title": "Ship Synap 0.1.2", "priority": "high",
+    {"op": "create", "entity_type": "task", "data": {
+      "title": "Ship Synap 0.1.2", "status": "todo", "priority": "high",
       "due": "2026-05-01", "created_at": "2026-04-19"
     }},
-    {"op": "create", "entity": {
-      "title": "Write release notes", "tags": ["docs"],
-      "due": "2026-04-29", "created_at": "2026-04-19"
+    {"op": "create", "entity_type": "task", "data": {
+      "title": "Write release notes", "status": "todo", "priority": "med",
+      "tags": ["docs"], "due": "2026-04-29", "created_at": "2026-04-19"
     }},
-    {"op": "create", "entity": {
-      "title": "Code-sign macOS binary",
+    {"op": "create", "entity_type": "task", "data": {
+      "title": "Code-sign macOS binary", "status": "todo", "priority": "med",
       "due": "2026-05-10", "created_at": "2026-04-19",
       "notes": "need Apple Developer ID ($99/yr), notarize via notarytool, embed timestamp"
     }}
@@ -57,7 +64,9 @@ notes.
 }}
 ```
 
-One call, atomic.
+One call, atomic. Enums without a server-side default mean the agent
+passes `status` explicitly — a known 0.1 papercut; see the roadmap for
+`required` / `default`.
 
 ## 3. Everyday queries
 
@@ -65,12 +74,16 @@ One call, atomic.
 
 ```json
 {"tool": "query", "args": {
-  "app_id": "tasks",
+  "app_id":      "tasks",
+  "entity_type": "task",
   "filters": [
     {"field": "status", "op": "in",  "value": ["todo", "doing"]},
     {"field": "due",    "op": "lte", "value": "2026-04-20"}
   ],
-  "sort": [{"field": "priority", "dir": "desc"}, {"field": "due", "dir": "asc"}]
+  "order_by": [
+    {"field": "priority", "direction": "desc"},
+    {"field": "due",      "direction": "asc"}
+  ]
 }}
 ```
 
@@ -78,14 +91,17 @@ One call, atomic.
 
 ```json
 {"tool": "query", "args": {
-  "app_id": "tasks",
+  "app_id":      "tasks",
+  "entity_type": "task",
   "filters": [
     {"field": "status", "op": "eq", "value": "done"},
-    {"field": "due",    "op": "gte", "value": "2026-04-01"}
+    {"field": "due",    "op": "between", "value": ["2026-04-01", "2026-04-30"]}
   ],
-  "sort": [{"field": "due", "dir": "desc"}]
+  "order_by": [{"field": "due", "direction": "desc"}]
 }}
 ```
+
+`between` is inclusive on both ends.
 
 ## 4. Update state
 
@@ -97,7 +113,7 @@ One call, atomic.
   "ops": [{
     "op": "update",
     "entity_id": "<id-from-query>",
-    "entity": {"status": "done"}
+    "data": {"status": "done"}
   }]
 }}
 ```
@@ -110,9 +126,10 @@ EAV update — only the changed attribute is written, not the whole row.
 
 ```json
 {"tool": "search", "args": {
-  "app_id": "tasks",
-  "query": "code signing certificate notarization",
-  "rank":  "relevance"
+  "app_id":      "tasks",
+  "entity_type": "task",
+  "query_text":  "code signing certificate notarization",
+  "mode":        "semantic"
 }}
 ```
 
@@ -121,16 +138,19 @@ doesn't mention "certificate" or "notarization".
 
 ## 6. Cross-app status report
 
-> Give me a status snapshot: open tasks, notes captured this week, recent
-> decisions I've remembered.
+> Give me a status snapshot: open tasks, notes captured this week,
+> recent decisions I've remembered.
 
-An agent can orchestrate three calls:
+An agent composes three calls:
 
 ```json
-{"tool": "query",  "args": {"app_id": "tasks", "filters": [{"field": "status", "op": "in", "value": ["todo", "doing"]}]}}
-{"tool": "query",  "args": {"app_id": "kb",    "filters": [{"field": "captured_at", "op": "gte", "value": "2026-04-14"}]}}
-{"tool": "search", "args": {"app_id": "synap.memories", "query": "decision", "rank": "time_decay"}}
+{"tool": "query",  "args": {"app_id": "tasks",  "entity_type": "task",
+  "filters": [{"field": "status", "op": "in", "value": ["todo", "doing"]}]}}
+{"tool": "query",  "args": {"app_id": "kb",     "entity_type": "note",
+  "filters": [{"field": "captured_at", "op": "gte", "value": "2026-04-14"}]}}
+{"tool": "search", "args": {"app_id": "synap.memories", "entity_type": "event",
+  "query_text": "decision", "rank": "time_decay"}}
 ```
 
-Then synthesizes a one-page report. This is the Synap pattern: agents
-compose small, structured reads into dashboards on the fly.
+Then synthesizes prose. This is the Synap pattern: agents compose small,
+structured reads into dashboards on the fly.

@@ -4,8 +4,8 @@ title: Personal Memory Recipe · Synap
 
 # Recipe: Personal memory
 
-Teach your agent enduring facts about you *and* log moments in time. The
-`synap.memories` app is built in — no `init_app` step.
+Teach your agent enduring facts about you *and* log moments in time.
+`synap.memories` is built in — no `init_app` step.
 
 ## Profile attributes (enduring state)
 
@@ -28,8 +28,9 @@ The agent calls `remember` three times:
 }}
 ```
 
-Note `op: "append"` for list-valued attributes — appends "shellfish" to
-any existing list. `op: "set"` overwrites.
+`op: "set"` overwrites. `op: "append"` adds to a list (creates it if
+missing). `op: "clear"` with `value` removes one element; without `value`
+unsets the attribute.
 
 ## Events (timestamped observations)
 
@@ -38,8 +39,17 @@ any existing list. `op: "set"` overwrites.
 ```json
 {"tool": "remember", "args": {
   "type": "event",
+  "description": "User shipped Synap 0.1.0"
+}}
+```
+
+Omit `when` for "now". To backdate, pass unix seconds:
+
+```json
+{"tool": "remember", "args": {
+  "type": "event",
   "description": "User shipped Synap 0.1.0",
-  "when": "2026-04-19"
+  "when": 1744934400
 }}
 ```
 
@@ -50,11 +60,12 @@ finds events by meaning.
 
 > What do you know about me?
 
-Agent calls `query` (not `search` — this is a structured lookup):
+Agent calls `query` (structured, not fuzzy):
 
 ```json
 {"tool": "query", "args": {
   "app_id": "synap.memories",
+  "entity_type": "profile",
   "filters": [{"field": "subject", "op": "eq", "value": "user"}]
 }}
 ```
@@ -65,13 +76,12 @@ Returns TSV with all profile attributes.
 
 > What have I been working on lately?
 
-Agent calls `search` with `rank: "time_decay"`:
-
 ```json
 {"tool": "search", "args": {
-  "app_id": "synap.memories",
-  "query": "working on",
-  "rank": "time_decay"
+  "app_id":     "synap.memories",
+  "entity_type": "event",
+  "query_text": "working on",
+  "rank":       "time_decay"
 }}
 ```
 
@@ -88,21 +98,24 @@ weigh more. See [Concepts · Hybrid search](/synap/concepts/#hybrid-search-and-r
 }}
 ```
 
-Precise by key. Don't "query then write null" — `forget` is atomic.
+To drop a single event, first `query` / `search` to get its id, then:
+
+```json
+{"tool": "forget", "args": {
+  "type": "event", "id": "<entity_id>"
+}}
+```
 
 ## Pre-turn injection
 
 You don't need to explicitly ask "what do you know about me?" — the
-daemon injects a `[memory: profile]` block into every turn the agent
-sees. Events are surfaced via `[memory: events]`, ranked by time-decay
-when the user query is non-empty, recency otherwise.
-
-Config lives under `[agent.memory]` in `agent.toml`:
+daemon injects `[memory: profile]` and `[memory: events]` blocks into
+every turn. Config lives under `[agent.memory]` in `agent.toml`:
 `event_digest_max`, `decay_half_life_days`, `decay_weight`.
 
 ## Tracking someone else
 
-Memory defaults to subject `"user"`. For multi-subject tracking:
+Memory defaults to the current user. For multi-subject tracking:
 
 ```json
 {"tool": "remember", "args": {
