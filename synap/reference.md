@@ -58,6 +58,26 @@ Two write-time modifiers:
 `between`, `is_null`, `is_not_null`, `array_contains`, `array_overlaps`,
 `orphan`, `ref_to`, `ref_from`.
 
+### Boolean combinators
+
+`filters` elements can be leaves **or** boolean nodes — `{and: [...]}`,
+`{or: [...]}`, `{not: <node>}`. The top-level array is an implicit AND.
+Nesting is unbounded:
+
+```json
+"filters": [
+  {"or": [
+    {"field": "priority", "op": "eq", "value": "high"},
+    {"field": "due",      "op": "lte", "value": "2026-04-25"}
+  ]},
+  {"field": "status", "op": "in", "value": ["todo", "doing"]}
+]
+```
+
+Ref ops (`ref_to` / `ref_from` / `orphan`) must remain as top-level
+leaves — they're resolved via entity-id lookup rather than SQL and
+nesting them inside an `or`/`not` returns a validation error.
+
 ## Memory tools
 
 ### `remember`

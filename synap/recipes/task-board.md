@@ -103,6 +103,25 @@ One call, atomic. `status` defaults to `"todo"` and `priority` to
 
 `between` is inclusive on both ends.
 
+> What needs attention? High-priority OR due within two days, still open.
+
+```json
+{"tool": "query", "args": {
+  "app": "tasks",
+  "filters": [
+    {"or": [
+      {"field": "priority", "op": "eq",  "value": "high"},
+      {"field": "due",      "op": "lte", "value": "2026-04-21"}
+    ]},
+    {"field": "status", "op": "in", "value": ["todo", "doing"]}
+  ],
+  "order_by": [{"field": "due", "direction": "asc"}]
+}}
+```
+
+Cross-field OR in one query — previously it took two queries and
+client-side merging.
+
 ## 4. Update state
 
 > Mark "Write release notes" as done.
