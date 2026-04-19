@@ -43,6 +43,15 @@ there's no dedicated date type.
 `indexed: true` enables B-tree lookups for fast filtering. `vectorized:
 true` enables semantic search on string/file fields.
 
+Two write-time modifiers:
+
+- **`required: true`** — `write` create ops without this field get
+  rejected with a `ValidationError`. Does not apply to `update`;
+  partial updates remain legal.
+- **`default: <value>`** — server fills this value on create when the
+  field is absent. Type must match `value_type`; enum defaults must be
+  one of `enum_values`.
+
 ### Filter operators
 
 `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `contains`, `in`, `not_in`,
@@ -83,7 +92,12 @@ Create or evolve an app. Idempotent.
 | Arg      | Type   | Notes |
 |----------|--------|-------|
 | `app_id` | string | required; no `synap.` prefix for user apps |
-| `types`  | object | required; `{typename: [field_spec, …]}` |
+| `fields` | array  | single-entity-type shorthand; equivalent to `types: {<app_id>: fields}`. Mutually exclusive with `types`. |
+| `types`  | object | multi-type schema: `{typename: [field_spec, …]}` |
+
+At least one of `fields` or `types` is required. Use `fields` for
+single-shape apps (tasks, kb, recipes, …) and `types` when one app
+holds multiple shapes.
 
 ### `list_apps`
 
