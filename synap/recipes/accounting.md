@@ -57,9 +57,30 @@ skips it unless the agent means a different currency.
       "amount": 1200,
       "category": "food", "description": "Lunch at Ichiran",
       "occurred_at": "2026-04-19", "account": "SMBC card"
-    }
+    },
+    "returning": true
   }]
 }}
+```
+
+`returning: true` echoes the persisted row so the agent can confirm
+`currency` defaulted to `"JPY"` and the `entity_id` without a second
+call. Response:
+
+```json
+[{
+  "op": "create",
+  "entity_ids": ["eid_abc"],
+  "entities": [{
+    "entity_id": "eid_abc",
+    "amount": 1200,
+    "currency": "JPY",
+    "category": "food",
+    "description": "Lunch at Ichiran",
+    "occurred_at": "2026-04-19",
+    "account": "SMBC card"
+  }]
+}]
 ```
 
 > Log: received 500,000 yen salary from Acme Corp on 2026-04-25.
