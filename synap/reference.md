@@ -157,7 +157,8 @@ Structured filter / sort / paginate. TSV output.
 | `cursor`         | string   | from previous `next_cursor` |
 | `ref_depth`      | integer  | expand `ref` fields |
 | `count_only`     | boolean  | return just the count |
-| `group_by`       | string   | with `count_only`, group counts |
+| `group_by`       | string   | partitions rows (for `aggregate` or `count_only`) |
+| `aggregate`      | array    | `[{fn, field?, as?}]` — compute sum/avg/min/max/count; emits `{key?, values}` rows instead of entities |
 | `include_degree` | boolean  | include in/out link counts per entity |
 | `full`           | boolean  | skip auto-truncation (use sparingly) |
 
