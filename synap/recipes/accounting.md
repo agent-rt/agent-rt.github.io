@@ -16,7 +16,7 @@ translate to structured queries.
 
 ```json
 {"tool": "init_app", "args": {
-  "app_id": "ledger",
+  "app": "ledger",
   "types": {
     "expense": [
       {"name": "amount",      "value_type": "number", "indexed": true, "required": true},
@@ -43,20 +43,16 @@ and `occurred_at` are required — half-populated ledger rows are a bug
 magnet. `currency` defaults to `"JPY"` server-side, so each transaction
 skips it unless the agent means a different currency.
 
-One app, two entity types. Each type gets its own schema, vec table, and
-FTS table — but they share an `app_id`, so cross-type queries work.
-Dates stay as ISO 8601 `string`.
-
 ## 2. Record transactions
 
 > Log: spent 1200 yen on lunch at Ichiran today, paid with SMBC card.
 
 ```json
 {"tool": "write", "args": {
-  "app_id": "ledger",
+  "app": "ledger",
   "ops": [{
     "op": "create",
-    "entity_type": "expense",
+    "type": "expense",
     "data": {
       "amount": 1200,
       "category": "food", "description": "Lunch at Ichiran",
@@ -70,12 +66,12 @@ Dates stay as ISO 8601 `string`.
 
 ```json
 {"tool": "write", "args": {
-  "app_id": "ledger",
+  "app": "ledger",
   "ops": [{
     "op": "create",
-    "entity_type": "income",
+    "type": "income",
     "data": {
-      "amount": 500000, "currency": "JPY",
+      "amount": 500000,
       "source": "Acme Corp", "description": "Salary April 2026",
       "occurred_at": "2026-04-25", "account": "SMBC main"
     }
@@ -89,25 +85,25 @@ Dates stay as ISO 8601 `string`.
 
 ```json
 {"tool": "query", "args": {
-  "app_id":      "ledger",
-  "entity_type": "expense",
+  "app":  "ledger",
+  "type": "expense",
   "filters": [
     {"field": "category",    "op": "eq",      "value": "food"},
     {"field": "occurred_at", "op": "between", "value": ["2026-04-01", "2026-04-30"]}
   ],
-  "fields": ["amount", "description", "occurred_at"]
+  "select": ["amount", "description", "occurred_at"]
 }}
 ```
 
 The agent sums `amount` client-side from TSV. Synap doesn't do SQL
-aggregates in 0.1 — projection + iteration is the pattern.
+aggregates in 0.2 — projection + iteration is the pattern.
 
 Or, if you just want the count and a grouped breakdown:
 
 ```json
 {"tool": "query", "args": {
-  "app_id":      "ledger",
-  "entity_type": "expense",
+  "app":  "ledger",
+  "type": "expense",
   "filters": [{"field": "occurred_at", "op": "between",
                "value": ["2026-04-01", "2026-04-30"]}],
   "count_only": true,
@@ -120,17 +116,17 @@ Or, if you just want the count and a grouped breakdown:
 > What's my net for April?
 
 Two queries (expenses + income), agent subtracts totals. Or a single
-cross-type query by omitting `entity_type`:
+cross-type query by omitting `type`:
 
 ```json
 {"tool": "query", "args": {
-  "app_id": "ledger",
+  "app": "ledger",
   "filters": [{"field": "occurred_at", "op": "between",
                "value": ["2026-04-01", "2026-04-30"]}]
 }}
 ```
 
-Result includes an `entity_type` column — partition client-side.
+Result includes a `type` column — partition client-side.
 
 ## 5. Fuzzy description search
 
@@ -138,10 +134,10 @@ Result includes an `entity_type` column — partition client-side.
 
 ```json
 {"tool": "search", "args": {
-  "app_id":      "ledger",
-  "entity_type": "expense",
-  "query_text":  "music streaming subscription",
-  "mode":        "semantic"
+  "app":        "ledger",
+  "type":       "expense",
+  "query_text": "music streaming subscription",
+  "mode":       "semantic"
 }}
 ```
 
