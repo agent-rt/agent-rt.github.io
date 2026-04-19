@@ -19,24 +19,29 @@ translate to structured queries.
   "app_id": "ledger",
   "types": {
     "expense": [
-      {"name": "amount",      "value_type": "number", "indexed": true},
-      {"name": "currency",    "value_type": "string"},
-      {"name": "category",    "value_type": "string", "indexed": true},
+      {"name": "amount",      "value_type": "number", "indexed": true, "required": true},
+      {"name": "currency",    "value_type": "string", "default":   "JPY"},
+      {"name": "category",    "value_type": "string", "indexed":   true},
       {"name": "description", "value_type": "string", "vectorized": true},
-      {"name": "occurred_at", "value_type": "string", "indexed": true},
+      {"name": "occurred_at", "value_type": "string", "indexed":   true, "required": true},
       {"name": "account",     "value_type": "string"}
     ],
     "income": [
-      {"name": "amount",      "value_type": "number", "indexed": true},
-      {"name": "currency",    "value_type": "string"},
-      {"name": "source",      "value_type": "string", "indexed": true},
+      {"name": "amount",      "value_type": "number", "indexed": true, "required": true},
+      {"name": "currency",    "value_type": "string", "default":   "JPY"},
+      {"name": "source",      "value_type": "string", "indexed":   true},
       {"name": "description", "value_type": "string", "vectorized": true},
-      {"name": "occurred_at", "value_type": "string", "indexed": true},
+      {"name": "occurred_at", "value_type": "string", "indexed":   true, "required": true},
       {"name": "account",     "value_type": "string"}
     ]
   }
 }}
 ```
+
+Multi-type app, so we use `types` (not the `fields` shorthand). `amount`
+and `occurred_at` are required — half-populated ledger rows are a bug
+magnet. `currency` defaults to `"JPY"` server-side, so each transaction
+skips it unless the agent means a different currency.
 
 One app, two entity types. Each type gets its own schema, vec table, and
 FTS table — but they share an `app_id`, so cross-type queries work.
@@ -53,7 +58,7 @@ Dates stay as ISO 8601 `string`.
     "op": "create",
     "entity_type": "expense",
     "data": {
-      "amount": 1200, "currency": "JPY",
+      "amount": 1200,
       "category": "food", "description": "Lunch at Ichiran",
       "occurred_at": "2026-04-19", "account": "SMBC card"
     }

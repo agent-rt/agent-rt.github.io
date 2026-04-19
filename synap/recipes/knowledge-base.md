@@ -15,17 +15,21 @@ auto-chunked and embedded, so semantic search works out of the box.
 ```json
 {"tool": "init_app", "args": {
   "app_id": "kb",
-  "types": {
-    "note": [
-      {"name": "title",       "value_type": "string", "indexed": true},
-      {"name": "source",      "value_type": "string"},
-      {"name": "tags",        "value_type": "array"},
-      {"name": "body",        "value_type": "string", "vectorized": true},
-      {"name": "captured_at", "value_type": "string", "indexed": true}
-    ]
-  }
+  "fields": [
+    {"name": "title",       "value_type": "string", "indexed": true, "required": true},
+    {"name": "source",      "value_type": "string"},
+    {"name": "tags",        "value_type": "array"},
+    {"name": "body",        "value_type": "string", "vectorized": true},
+    {"name": "captured_at", "value_type": "string", "indexed": true}
+  ]
 }}
 ```
+
+`fields` is the single-entity-type shorthand — equivalent to `types:
+{kb: [fields]}`. Use it whenever an app holds one shape of entity. For
+multi-type apps (see the [accounting recipe](/synap/recipes/accounting/)),
+drop back to `types`. `required: true` makes the server reject create
+ops missing `title`.
 
 `vectorized: true` on `body` is the magic. Synap auto-embeds that field
 on every write and chunks >1024-token bodies with 128-token overlap.
@@ -48,7 +52,6 @@ filtering.
   "app_id": "kb",
   "ops": [{
     "op": "create",
-    "entity_type": "note",
     "data": {
       "title": "Arc<Mutex<T>> vs. channels",
       "tags":  ["rust", "concurrency"],
@@ -60,6 +63,9 @@ filtering.
 }}
 ```
 
+With the `fields` shorthand the implicit type name is empty, so
+`entity_type` can be omitted.
+
 **Batching**: pass multiple ops in one array for atomic writes (all-or-
 nothing):
 
@@ -67,9 +73,9 @@ nothing):
 {"tool": "write", "args": {
   "app_id": "kb",
   "ops": [
-    {"op": "create", "entity_type": "note", "data": {"title": "Entry A", "body": "..."}},
-    {"op": "create", "entity_type": "note", "data": {"title": "Entry B", "body": "..."}},
-    {"op": "create", "entity_type": "note", "data": {"title": "Entry C", "body": "..."}}
+    {"op": "create", "data": {"title": "Entry A", "body": "..."}},
+    {"op": "create", "data": {"title": "Entry B", "body": "..."}},
+    {"op": "create", "data": {"title": "Entry C", "body": "..."}}
   ]
 }}
 ```
@@ -80,7 +86,7 @@ nothing):
 
 ```json
 {"tool": "search", "args": {
-  "app_id":     "kb",
+  "app_id":    "kb",
   "query_text": "concurrency in systems languages",
   "mode":       "semantic",
   "rank":       "relevance",
@@ -97,7 +103,7 @@ the best-matching chunk with surrounding context.
 
 ```json
 {"tool": "search", "args": {
-  "app_id":     "kb",
+  "app_id":    "kb",
   "query_text": "concurrency",
   "filters":    [{"field": "tags", "op": "array_contains", "value": "rust"}]
 }}

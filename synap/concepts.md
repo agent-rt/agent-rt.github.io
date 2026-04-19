@@ -36,8 +36,10 @@ Schemas define:
 - `vectorized: true` to enable semantic search (string/file only).
 - `indexed: true` for B-tree lookups on fields you filter or sort by
   often.
-- Multiple entity types per app — e.g., `task` + `note` sharing one
-  `workspace` app, each with its own field list under `types`.
+- `required: true` and `default: <value>` — create-time validation and
+  server-side defaults; partial updates remain legal.
+- Single-type apps use `fields: [...]`; apps with multiple entity
+  shapes use `types: {typename: [...]}`.
 
 ## Memory: profile vs. event
 

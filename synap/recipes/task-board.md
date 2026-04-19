@@ -16,25 +16,27 @@ notes.
 ```json
 {"tool": "init_app", "args": {
   "app_id": "tasks",
-  "types": {
-    "task": [
-      {"name": "title",      "value_type": "string", "indexed": true},
-      {"name": "status",     "value_type": "enum",
-       "enum_values": ["todo", "doing", "done", "cancelled"], "indexed": true},
-      {"name": "priority",   "value_type": "enum",
-       "enum_values": ["low", "med", "high"]},
-      {"name": "due",        "value_type": "string", "indexed": true},
-      {"name": "tags",       "value_type": "array"},
-      {"name": "notes",      "value_type": "string", "vectorized": true},
-      {"name": "created_at", "value_type": "string"}
-    ]
-  }
+  "fields": [
+    {"name": "title",      "value_type": "string", "indexed": true, "required": true},
+    {"name": "status",     "value_type": "enum",
+     "enum_values": ["todo", "doing", "done", "cancelled"],
+     "indexed": true, "default": "todo"},
+    {"name": "priority",   "value_type": "enum",
+     "enum_values": ["low", "med", "high"], "default": "med"},
+    {"name": "due",        "value_type": "string", "indexed": true},
+    {"name": "tags",       "value_type": "array"},
+    {"name": "notes",      "value_type": "string", "vectorized": true},
+    {"name": "created_at", "value_type": "string"}
+  ]
 }}
 ```
 
 Dates live as ISO 8601 `string` — lexicographic compare gives correct
 ranges. `indexed: true` on `status` and `due` because those are the
-common filter/sort axes.
+common filter/sort axes. `required: true` on `title` + `default: "todo"`
+/ `"med"` on the enums mean the server rejects half-populated creates
+and fills sensible defaults — agents don't have to repeat them in
+every write.
 
 ## 2. Add tasks
 
@@ -47,16 +49,16 @@ common filter/sort axes.
 {"tool": "write", "args": {
   "app_id": "tasks",
   "ops": [
-    {"op": "create", "entity_type": "task", "data": {
-      "title": "Ship Synap 0.1.2", "status": "todo", "priority": "high",
+    {"op": "create", "data": {
+      "title": "Ship Synap 0.1.2", "priority": "high",
       "due": "2026-05-01", "created_at": "2026-04-19"
     }},
-    {"op": "create", "entity_type": "task", "data": {
-      "title": "Write release notes", "status": "todo", "priority": "med",
-      "tags": ["docs"], "due": "2026-04-29", "created_at": "2026-04-19"
+    {"op": "create", "data": {
+      "title": "Write release notes", "tags": ["docs"],
+      "due": "2026-04-29", "created_at": "2026-04-19"
     }},
-    {"op": "create", "entity_type": "task", "data": {
-      "title": "Code-sign macOS binary", "status": "todo", "priority": "med",
+    {"op": "create", "data": {
+      "title": "Code-sign macOS binary",
       "due": "2026-05-10", "created_at": "2026-04-19",
       "notes": "need Apple Developer ID ($99/yr), notarize via notarytool, embed timestamp"
     }}
@@ -64,9 +66,9 @@ common filter/sort axes.
 }}
 ```
 
-One call, atomic. Enums without a server-side default mean the agent
-passes `status` explicitly — a known 0.1 papercut; see the roadmap for
-`required` / `default`.
+One call, atomic. `status` defaults to `"todo"` and `priority` to
+`"med"` via the schema — only the overriding row (first one:
+`"priority": "high"`) needs to spell them out.
 
 ## 3. Everyday queries
 
@@ -74,8 +76,7 @@ passes `status` explicitly — a known 0.1 papercut; see the roadmap for
 
 ```json
 {"tool": "query", "args": {
-  "app_id":      "tasks",
-  "entity_type": "task",
+  "app_id": "tasks",
   "filters": [
     {"field": "status", "op": "in",  "value": ["todo", "doing"]},
     {"field": "due",    "op": "lte", "value": "2026-04-20"}
@@ -91,8 +92,7 @@ passes `status` explicitly — a known 0.1 papercut; see the roadmap for
 
 ```json
 {"tool": "query", "args": {
-  "app_id":      "tasks",
-  "entity_type": "task",
+  "app_id": "tasks",
   "filters": [
     {"field": "status", "op": "eq", "value": "done"},
     {"field": "due",    "op": "between", "value": ["2026-04-01", "2026-04-30"]}
@@ -126,10 +126,9 @@ EAV update — only the changed attribute is written, not the whole row.
 
 ```json
 {"tool": "search", "args": {
-  "app_id":      "tasks",
-  "entity_type": "task",
-  "query_text":  "code signing certificate notarization",
-  "mode":        "semantic"
+  "app_id":     "tasks",
+  "query_text": "code signing certificate notarization",
+  "mode":       "semantic"
 }}
 ```
 
@@ -144,9 +143,9 @@ doesn't mention "certificate" or "notarization".
 An agent composes three calls:
 
 ```json
-{"tool": "query",  "args": {"app_id": "tasks",  "entity_type": "task",
+{"tool": "query",  "args": {"app_id": "tasks",
   "filters": [{"field": "status", "op": "in", "value": ["todo", "doing"]}]}}
-{"tool": "query",  "args": {"app_id": "kb",     "entity_type": "note",
+{"tool": "query",  "args": {"app_id": "kb",
   "filters": [{"field": "captured_at", "op": "gte", "value": "2026-04-14"}]}}
 {"tool": "search", "args": {"app_id": "synap.memories", "entity_type": "event",
   "query_text": "decision", "rank": "time_decay"}}
