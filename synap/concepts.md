@@ -30,10 +30,14 @@ Inside an app, data lives as **entities** (rows) with **attributes**
 later is zero-cost — old rows just don't have the attribute.
 
 Schemas define:
-- Field name and type (`text`, `number`, `date`, `enum`, `bool`)
-- `vectorized: true` to enable semantic search on that field
-- `entity_type` for apps that hold multiple shapes (e.g., `task` + `note`
-  in one `workspace` app)
+- Field `name` and `value_type` — one of `string`, `number`, `boolean`,
+  `enum`, `ref`, `array`, `json`, `file`. Dates live as ISO 8601
+  strings.
+- `vectorized: true` to enable semantic search (string/file only).
+- `indexed: true` for B-tree lookups on fields you filter or sort by
+  often.
+- Multiple entity types per app — e.g., `task` + `note` sharing one
+  `workspace` app, each with its own field list under `types`.
 
 ## Memory: profile vs. event
 
