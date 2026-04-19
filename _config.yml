@@ -1,0 +1,12 @@
+title: agent-rt
+description: Local-first, agent-native developer tools.
+url: https://agent-rt.github.io
+theme: jekyll-theme-minimal
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+permalink: pretty
+exclude:
+  - README.md
+  - LICENSE
