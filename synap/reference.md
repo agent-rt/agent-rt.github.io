@@ -173,10 +173,10 @@ Structured filter / sort / paginate. TSV output.
 | `type`           | string   | optional entity type filter |
 | `filters`        | array    | `[{field, op, value}]` |
 | `order_by`       | array    | `[{field, direction}]` — `direction`: `asc` \| `desc` |
-| `select`         | string[] | project specific fields |
+| `select`         | string[] | project specific fields; dot-paths (`assignee.name`) reach into expanded refs |
 | `limit`, `offset`| integer  | pagination |
 | `cursor`         | string   | from previous `next_cursor` |
-| `ref_depth`      | integer  | expand `ref` fields |
+| `expand_refs`    | integer  | follow `ref` fields, N hops (0–10). Combine with dot-path `select` to project only needed fields |
 | `count_only`     | boolean  | return just the count |
 | `group_by`       | string   | partitions rows (for `aggregate` or `count_only`) |
 | `aggregate`      | array    | `[{fn, field?, as?}]` — compute sum/avg/min/max/count; emits `{key?, values}` rows instead of entities |
