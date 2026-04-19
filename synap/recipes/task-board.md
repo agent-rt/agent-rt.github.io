@@ -23,20 +23,20 @@ notes.
      "indexed": true, "default": "todo"},
     {"name": "priority",   "value_type": "enum",
      "enum_values": ["low", "med", "high"], "default": "med"},
-    {"name": "due",        "value_type": "string", "indexed": true},
+    {"name": "due",        "value_type": "date",   "indexed": true},
     {"name": "tags",       "value_type": "array"},
     {"name": "notes",      "value_type": "string", "vectorized": true},
-    {"name": "created_at", "value_type": "string"}
+    {"name": "created_at", "value_type": "date",   "default": "now"}
   ]
 }}
 ```
 
-Dates live as ISO 8601 `string` — lexicographic compare gives correct
-ranges. `indexed: true` on `status` and `due` because those are the
-common filter/sort axes. `required: true` on `title` + `default: "todo"`
-/ `"med"` on the enums mean the server rejects half-populated creates
-and fills sensible defaults — agents don't have to repeat them in
-every write.
+Dates use `value_type: "date"` — ISO 8601 validated on write (nothing
+junk lands in `due`) and `created_at` defaults to `"now"` so the agent
+doesn't hand-roll timestamps. `indexed: true` on `status` and `due`
+because those are the common filter/sort axes. `required: true` on
+`title` + `default: "todo"` / `"med"` on the enums mean the server
+rejects half-populated creates and fills sensible defaults.
 
 ## 2. Add tasks
 
@@ -51,12 +51,10 @@ every write.
   "ops": [
     {"op": "create", "data": {
       "title": "Ship Synap 0.1.2", "priority": "high",
-      "due": "2026-05-01", "created_at": "2026-04-19"
-    }},
+      "due": "2026-05-01"    }},
     {"op": "create", "data": {
       "title": "Write release notes", "tags": ["docs"],
-      "due": "2026-04-29", "created_at": "2026-04-19"
-    }},
+      "due": "2026-04-29"    }},
     {"op": "create", "data": {
       "title": "Code-sign macOS binary",
       "due": "2026-05-10", "created_at": "2026-04-19",

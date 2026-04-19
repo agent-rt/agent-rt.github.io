@@ -31,8 +31,8 @@ later is zero-cost — old rows just don't have the attribute.
 
 Schemas define:
 - Field `name` and `value_type` — one of `string`, `number`, `boolean`,
-  `enum`, `ref`, `array`, `json`, `file`. Dates live as ISO 8601
-  strings.
+  `enum`, `ref`, `array`, `json`, `file`, `date`. `date` validates ISO
+  8601 on write and supports `default: "now"`.
 - `vectorized: true` to enable semantic search (string/file only).
 - `indexed: true` for B-tree lookups on fields you filter or sort by
   often.

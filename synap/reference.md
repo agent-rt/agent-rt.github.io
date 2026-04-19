@@ -22,9 +22,10 @@ with `mcp__synap__`. Shapes here match the JSON Schemas in
 - `json` — arbitrary blob; opaque to filters/search.
 - `file` — local path or `synap://` URI. Can be `vectorized: true` — text
   files get auto-chunked + embedded.
-
-Dates are stored as `string` (ISO 8601) or `number` (unix seconds) —
-there's no dedicated date type.
+- `date` — ISO 8601 string, validated on write. Accepts `YYYY-MM-DD`,
+  `YYYY-MM-DDTHH:MM:SS`, `…Z`, `…±HH:MM`. Range filters work the same
+  as string lex-compare, but malformed inputs get rejected up front.
+  `default: "now"` resolves to the current UTC timestamp on create.
 
 ### Field spec
 

@@ -20,7 +20,7 @@ auto-chunked and embedded, so semantic search works out of the box.
     {"name": "source",      "value_type": "string"},
     {"name": "tags",        "value_type": "array"},
     {"name": "body",        "value_type": "string", "vectorized": true},
-    {"name": "captured_at", "value_type": "string", "indexed": true}
+    {"name": "captured_at", "value_type": "date",   "indexed": true, "default": "now"}
   ]
 }}
 ```
@@ -33,9 +33,8 @@ ops missing `title`.
 
 `vectorized: true` on `body` is the magic. Synap auto-embeds that field
 on every write and chunks >1024-token bodies with 128-token overlap.
-`captured_at` is ISO 8601 in a `string` — there's no dedicated date
-type, but lexicographic compare on ISO strings gives correct range
-filtering.
+`captured_at` is a real `date` field — ISO 8601 validated on write —
+with `default: "now"` so the agent never has to supply it by hand.
 
 ## 2. Add entries
 

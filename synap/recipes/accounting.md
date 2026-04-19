@@ -23,7 +23,7 @@ translate to structured queries.
       {"name": "currency",    "value_type": "string", "default":   "JPY"},
       {"name": "category",    "value_type": "string", "indexed":   true},
       {"name": "description", "value_type": "string", "vectorized": true},
-      {"name": "occurred_at", "value_type": "string", "indexed":   true, "required": true},
+      {"name": "occurred_at", "value_type": "date",   "indexed":   true, "required": true},
       {"name": "account",     "value_type": "string"}
     ],
     "income": [
@@ -31,7 +31,7 @@ translate to structured queries.
       {"name": "currency",    "value_type": "string", "default":   "JPY"},
       {"name": "source",      "value_type": "string", "indexed":   true},
       {"name": "description", "value_type": "string", "vectorized": true},
-      {"name": "occurred_at", "value_type": "string", "indexed":   true, "required": true},
+      {"name": "occurred_at", "value_type": "date",   "indexed":   true, "required": true},
       {"name": "account",     "value_type": "string"}
     ]
   }
@@ -41,7 +41,9 @@ translate to structured queries.
 Multi-type app, so we use `types` (not the `fields` shorthand). `amount`
 and `occurred_at` are required — half-populated ledger rows are a bug
 magnet. `currency` defaults to `"JPY"` server-side, so each transaction
-skips it unless the agent means a different currency.
+skips it unless the agent means a different currency. `occurred_at` is
+a proper `date` field so malformed input (`"yesterday"`, `"2026-13-40"`)
+is rejected on write rather than silently corrupting range queries.
 
 ## 2. Record transactions
 
