@@ -23,6 +23,12 @@ will translate them into the tool calls below.
   statuses, due dates, tags, and "what should I work on next?" queries.
 - **[Accounting](/synap/recipes/accounting/)** — track expenses, income,
   and categories; answer "how much did I spend on food last month?"
+- **[Knowledge brain](/synap/recipes/knowledge-brain/)** — typed-graph
+  knowledge store (concepts / people / companies / papers) with
+  compiled-truth pages, append-only events, and graph traversal.
+- **[LLM-maintained wiki](/synap/recipes/llm-wiki/)** — immutable
+  sources + LLM-maintained summary / entity / concept / comparison
+  pages, with a live index and cross-references.
 
 ## Common pattern
 
