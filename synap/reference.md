@@ -120,13 +120,25 @@ Op shapes:
 
 | Op     | Shape |
 |--------|-------|
-| create | `{"op": "create", "type": "task", "data": {...}, "upsert_by": "slug"}` |
-| update | `{"op": "update", "entity_id": "...", "data": {...}}` |
+| create | `{"op": "create", "type": "task", "data": {...}, "upsert_by": "slug", "returning": true}` |
+| update | `{"op": "update", "entity_id": "...", "data": {...}, "returning": ["status"]}` |
 | delete | `{"op": "delete", "entity_id": "..."}` |
 
 `type` on create is only needed for multi-type apps. `upsert_by` (create
 only): if an indexed field in `data` matches an existing row, update
 instead of inserting.
+
+**`returning`** (create / update): echo the persisted row so the caller
+doesn't need a follow-up query. Two shapes:
+
+- `"returning": true` — return the full row (entity_id + all fields,
+  including server-filled defaults).
+- `"returning": ["field1", "field2"]` — project to the listed fields.
+  `entity_id` is always included.
+
+When any op in `ops` uses `returning`, the response passes through the
+per-op batch array (with `entities` / `entity` keys populated) instead
+of the compact `{pushed, updated, deleted}` summary.
 
 ## Reading
 
