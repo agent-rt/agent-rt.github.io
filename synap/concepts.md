@@ -23,6 +23,30 @@ Two apps are built-in and reserved (`synap.*` namespace):
 
 User-facing apps must not start with `synap.`.
 
+### One app per domain — types for entity shapes
+
+When a domain holds multiple entity shapes, model it as **one app with
+multi-type `types`**, not as sibling apps. A knowledge brain with
+pages, links, and events is one app `brain` with three types — not
+three apps `brain.pages` / `brain.links` / `brain.events`. A wiki
+with sources, summaries, and a log is one app `wiki` with types
+`source` / `summary` / `log`.
+
+Why one app beats three:
+
+- **Atomic cross-type writes.** Creating a page and the link citing
+  it in one `write` call is all-or-nothing. Cross-app writes can't
+  batch atomically.
+- **Cross-type query / search / aggregate.** One `search` finds
+  matches across every type; one `query` with
+  `aggregate group_by: entity_type` gives per-type counts. Cross-app
+  equivalents require fan-out and client-side merge.
+- **Single namespace.** The agent remembers one name, not three.
+
+Use multiple apps only when the domains are genuinely independent
+(personal `brain` vs team `wiki`). Splitting related shapes across
+apps is the anti-pattern multi-type was built to kill.
+
 ## Entities and the EAV model
 
 Inside an app, data lives as **entities** (rows) with **attributes**
