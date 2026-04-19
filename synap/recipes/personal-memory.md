@@ -29,8 +29,8 @@ The agent calls `remember` three times:
 ```
 
 `op: "set"` overwrites. `op: "append"` adds to a list (creates it if
-missing). `op: "clear"` with `value` removes one element; without `value`
-unsets the attribute.
+missing). `op: "clear"` with `value` removes one element; without
+`value` unsets the attribute.
 
 ## Events (timestamped observations)
 
@@ -64,8 +64,8 @@ Agent calls `query` (structured, not fuzzy):
 
 ```json
 {"tool": "query", "args": {
-  "app_id": "synap.memories",
-  "entity_type": "profile",
+  "app":  "synap.memories",
+  "type": "profile",
   "filters": [{"field": "subject", "op": "eq", "value": "user"}]
 }}
 ```
@@ -78,8 +78,8 @@ Returns TSV with all profile attributes.
 
 ```json
 {"tool": "search", "args": {
-  "app_id":     "synap.memories",
-  "entity_type": "event",
+  "app":        "synap.memories",
+  "type":       "event",
   "query_text": "working on",
   "rank":       "time_decay"
 }}

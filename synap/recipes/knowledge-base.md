@@ -14,7 +14,7 @@ auto-chunked and embedded, so semantic search works out of the box.
 
 ```json
 {"tool": "init_app", "args": {
-  "app_id": "kb",
+  "app": "kb",
   "fields": [
     {"name": "title",       "value_type": "string", "indexed": true, "required": true},
     {"name": "source",      "value_type": "string"},
@@ -49,7 +49,7 @@ filtering.
 
 ```json
 {"tool": "write", "args": {
-  "app_id": "kb",
+  "app": "kb",
   "ops": [{
     "op": "create",
     "data": {
@@ -63,15 +63,15 @@ filtering.
 }}
 ```
 
-With the `fields` shorthand the implicit type name is empty, so
-`entity_type` can be omitted.
+With the `fields` shorthand the implicit type name is empty, so `type`
+can be omitted on writes.
 
 **Batching**: pass multiple ops in one array for atomic writes (all-or-
 nothing):
 
 ```json
 {"tool": "write", "args": {
-  "app_id": "kb",
+  "app": "kb",
   "ops": [
     {"op": "create", "data": {"title": "Entry A", "body": "..."}},
     {"op": "create", "data": {"title": "Entry B", "body": "..."}},
@@ -86,7 +86,7 @@ nothing):
 
 ```json
 {"tool": "search", "args": {
-  "app_id":    "kb",
+  "app":        "kb",
   "query_text": "concurrency in systems languages",
   "mode":       "semantic",
   "rank":       "relevance",
@@ -103,7 +103,7 @@ the best-matching chunk with surrounding context.
 
 ```json
 {"tool": "search", "args": {
-  "app_id":    "kb",
+  "app":        "kb",
   "query_text": "concurrency",
   "filters":    [{"field": "tags", "op": "array_contains", "value": "rust"}]
 }}
@@ -118,15 +118,15 @@ Filters run before ranking, dramatically narrowing the candidate set.
 
 ```json
 {"tool": "query", "args": {
-  "app_id":   "kb",
+  "app":      "kb",
   "filters":  [{"field": "captured_at", "op": "gte", "value": "2026-04-14"}],
   "order_by": [{"field": "captured_at", "direction": "desc"}],
-  "fields":   ["title", "tags", "captured_at"]
+  "select":   ["title", "tags", "captured_at"]
 }}
 ```
 
-`fields` projects only selected attributes — essential when bodies are
-long and you just want a list.
+`select` projects only the listed attributes — essential when bodies
+are long and you just want a list.
 
 ## 6. Evolve the schema later
 
@@ -146,6 +146,6 @@ The schema registry updates transparently on first write.
   them.
 - `indexed: true` on fields you filter or sort by frequently — B-tree
   lookups instead of full scans.
-- For multiple shapes in one app (articles vs. code snippets), add
-  more entries to `types` (e.g., `{types: {article: [...], snippet:
-  [...]}}`) — each type gets its own schema and vec table.
+- For multiple shapes in one app (articles vs. code snippets), use
+  `types` (e.g., `{types: {article: [...], snippet: [...]}}`) — each
+  type gets its own schema and vec table.

@@ -4,8 +4,8 @@ title: Reference · Synap
 
 # Reference
 
-Every MCP tool Synap exposes. Tool names appear to the model prefixed with
-`mcp__synap__`. Shapes here match the JSON Schemas in
+Every MCP tool Synap exposes. Tool names appear to the model prefixed
+with `mcp__synap__`. Shapes here match the JSON Schemas in
 `synap-tools/src/schema.rs` — the single source of truth.
 
 ## Core types
@@ -91,8 +91,8 @@ Create or evolve an app. Idempotent.
 
 | Arg      | Type   | Notes |
 |----------|--------|-------|
-| `app_id` | string | required; no `synap.` prefix for user apps |
-| `fields` | array  | single-entity-type shorthand; equivalent to `types: {<app_id>: fields}`. Mutually exclusive with `types`. |
+| `app`    | string | required; no `synap.` prefix for user apps |
+| `fields` | array  | single-entity-type shorthand; equivalent to `types: {<app>: fields}`. Mutually exclusive with `types`. |
 | `types`  | object | multi-type schema: `{typename: [field_spec, …]}` |
 
 At least one of `fields` or `types` is required. Use `fields` for
@@ -109,23 +109,24 @@ holds multiple shapes.
 
 ### `write`
 
-Create / update / delete. `ops` is an array — **1 op = single write, N ops
-= atomic batch**.
+Create / update / delete. `ops` is an array — **1 op = single write, N
+ops = atomic batch**.
 
 ```json
-{"app_id": "tasks", "ops": [ <op>, <op>, ... ]}
+{"app": "tasks", "ops": [ <op>, <op>, ... ]}
 ```
 
 Op shapes:
 
-| Op | Shape |
-|----|-------|
-| create | `{"op": "create", "entity_type": "task", "data": {...}, "upsert_by": "slug"}` |
+| Op     | Shape |
+|--------|-------|
+| create | `{"op": "create", "type": "task", "data": {...}, "upsert_by": "slug"}` |
 | update | `{"op": "update", "entity_id": "...", "data": {...}}` |
 | delete | `{"op": "delete", "entity_id": "..."}` |
 
-`upsert_by` (create only): if an indexed field in `data` matches an
-existing row, update instead of inserting.
+`type` on create is only needed for multi-type apps. `upsert_by` (create
+only): if an indexed field in `data` matches an existing row, update
+instead of inserting.
 
 ## Reading
 
@@ -135,11 +136,11 @@ Structured filter / sort / paginate. TSV output.
 
 | Arg              | Type     | Notes |
 |------------------|----------|-------|
-| `app_id`         | string   | required |
-| `entity_type`    | string   | optional |
+| `app`            | string   | required |
+| `type`           | string   | optional entity type filter |
 | `filters`        | array    | `[{field, op, value}]` |
 | `order_by`       | array    | `[{field, direction}]` — `direction`: `asc` \| `desc` |
-| `fields`         | string[] | project specific fields |
+| `select`         | string[] | project specific fields |
 | `limit`, `offset`| integer  | pagination |
 | `cursor`         | string   | from previous `next_cursor` |
 | `ref_depth`      | integer  | expand `ref` fields |
@@ -155,20 +156,20 @@ Hybrid semantic + keyword search. TSV output with snippets.
 | Arg              | Type   | Notes |
 |------------------|--------|-------|
 | `query_text`     | string | required |
-| `app_id`         | string | omit for cross-app |
-| `entity_type`    | string | optional |
+| `app`            | string | omit for cross-app |
+| `type`           | string | optional entity type filter |
 | `mode`           | `"semantic"` \| `"keyword"` \| `"hybrid"` | default `semantic` |
 | `filters`        | array  | same as `query` |
 | `rank`           | `"relevance"` \| `"recency"` \| `"time_decay"` | default `relevance` |
 | `rank_field`     | string | timestamp field for recency/time_decay (default `when`) |
 | `half_life_days` | number | `time_decay` (default 30) |
 | `decay_weight`   | number | `time_decay` (default 0.5) |
-| `fields`         | string[] | project |
+| `select`         | string[] | project specific fields |
 | `limit`          | integer | default 10 |
 
 ## Context management
 
-### `expand`
+### `expand_context`
 
 Recover the verbatim text of a `<compressed_segment turn_ids="...">` or
 `<stale_tool_result turn_id="...">` block.
@@ -177,11 +178,60 @@ Recover the verbatim text of a `<compressed_segment turn_ids="...">` or
 |------------|----------|-------|
 | `turn_ids` | string[] | required; ids from the block |
 
+## Embedding maintenance
+
+### `embed_status`
+
+| Arg   | Type   | Notes |
+|-------|--------|-------|
+| `app` | string | optional; limit count to one app |
+
+Returns `{pending, indexed, total}`.
+
+### `reindex`
+
+Enqueue re-embedding for vectorized fields. Runs asynchronously.
+
+| Arg     | Type   | Notes |
+|---------|--------|-------|
+| `app`   | string | required |
+| `type`  | string | optional entity type filter |
+| `field` | string | optional; only this vectorized field |
+
+## Files and links
+
+### `read_file`
+
+Read local files or `synap://` / `file://` URIs. Auto-paginated (~4K
+chars/page).
+
+| Arg      | Type   | Notes |
+|----------|--------|-------|
+| `uri`    | string | absolute path or URI |
+| `offset` | number | start line (0-based) |
+| `limit`  | number | lines to read |
+
+### `scan_dir`
+
+List directory contents with optional previews. TSV output.
+
+### `detect_links`
+
+Opt-in: find semantic relationships between entities. Useful for
+building knowledge graphs from accumulated notes.
+
+### `patch_view`
+
+Incremental updates to a view spec stored in `synap.views`.
+
 ---
 
 ## Response formats
 
-- **JSON** — `remember`, `forget`, `init_app`, `write`, `expand`, and
-  other control tools.
-- **TSV** — `query`, `search`, `list_apps`. Dense, context-cheap; first
-  row is the header.
+- **JSON**: `remember`, `forget`, `init_app`, `write`, `read_file`,
+  `detect_links`, `patch_view`, `expand_context`, `embed_status`,
+  `reindex`.
+- **TSV**: `query`, `search`, `list_apps`, `scan_dir`.
+
+TSV is chosen for multi-row reads to minimize context bytes vs. JSON.
+Tabs separate columns; first row is the header.

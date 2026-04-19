@@ -10,12 +10,12 @@ notes.
 ## 1. Design
 
 > Make a synap app "tasks" with: title, status (enum todo/doing/done/
-> cancelled), priority (enum low/med/high), due, tags (array),
-> notes (vectorized), created_at.
+> cancelled, default todo), priority (enum low/med/high, default med),
+> due, tags (array), notes (vectorized), created_at.
 
 ```json
 {"tool": "init_app", "args": {
-  "app_id": "tasks",
+  "app": "tasks",
   "fields": [
     {"name": "title",      "value_type": "string", "indexed": true, "required": true},
     {"name": "status",     "value_type": "enum",
@@ -47,7 +47,7 @@ every write.
 
 ```json
 {"tool": "write", "args": {
-  "app_id": "tasks",
+  "app": "tasks",
   "ops": [
     {"op": "create", "data": {
       "title": "Ship Synap 0.1.2", "priority": "high",
@@ -76,7 +76,7 @@ One call, atomic. `status` defaults to `"todo"` and `priority` to
 
 ```json
 {"tool": "query", "args": {
-  "app_id": "tasks",
+  "app": "tasks",
   "filters": [
     {"field": "status", "op": "in",  "value": ["todo", "doing"]},
     {"field": "due",    "op": "lte", "value": "2026-04-20"}
@@ -92,7 +92,7 @@ One call, atomic. `status` defaults to `"todo"` and `priority` to
 
 ```json
 {"tool": "query", "args": {
-  "app_id": "tasks",
+  "app": "tasks",
   "filters": [
     {"field": "status", "op": "eq", "value": "done"},
     {"field": "due",    "op": "between", "value": ["2026-04-01", "2026-04-30"]}
@@ -109,7 +109,7 @@ One call, atomic. `status` defaults to `"todo"` and `priority` to
 
 ```json
 {"tool": "write", "args": {
-  "app_id": "tasks",
+  "app": "tasks",
   "ops": [{
     "op": "update",
     "entity_id": "<id-from-query>",
@@ -126,7 +126,7 @@ EAV update — only the changed attribute is written, not the whole row.
 
 ```json
 {"tool": "search", "args": {
-  "app_id":     "tasks",
+  "app":        "tasks",
   "query_text": "code signing certificate notarization",
   "mode":       "semantic"
 }}
@@ -143,11 +143,11 @@ doesn't mention "certificate" or "notarization".
 An agent composes three calls:
 
 ```json
-{"tool": "query",  "args": {"app_id": "tasks",
+{"tool": "query",  "args": {"app": "tasks",
   "filters": [{"field": "status", "op": "in", "value": ["todo", "doing"]}]}}
-{"tool": "query",  "args": {"app_id": "kb",
+{"tool": "query",  "args": {"app": "kb",
   "filters": [{"field": "captured_at", "op": "gte", "value": "2026-04-14"}]}}
-{"tool": "search", "args": {"app_id": "synap.memories", "entity_type": "event",
+{"tool": "search", "args": {"app": "synap.memories", "type": "event",
   "query_text": "decision", "rank": "time_decay"}}
 ```
 
