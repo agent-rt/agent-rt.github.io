@@ -5,32 +5,29 @@ title: Knowledge Brain Recipe · Synap
 # Recipe: Knowledge brain
 
 A typed-graph knowledge store — pages (concepts / people / companies /
-papers) connected by labelled edges (`works_at`, `attended`,
-`cites`, `invested_in`). Each page carries a **compiled truth** (the
-current understanding, edited as evidence changes) plus an
-append-only stream of events. Query by meaning, by structure, or by
-graph traversal.
+papers) connected by labelled edges (`works_at`, `attended`, `cites`,
+`invested_in`) plus an append-only stream of events. Each page carries
+a **compiled truth** (the current understanding, edited as evidence
+changes). Query by meaning, by structure, or by graph traversal.
 
 Inspired by [GBrain](https://github.com/garrytan/gbrain)'s compiled-
 truth + timeline pattern; adapted to Synap 0.2's `expand_refs`, `date`
-fields, and `types` multi-entity apps.
+fields, and multi-type apps.
 
-## 1. Design the schemas
+## 1. Design the schema — one app, many types
 
-Three apps: `brain.pages` for nodes, `brain.links` for edges,
-`brain.events` for the append-only timeline. Separating them lets the
-vectorizer run only on the long-text fields (`compiled_truth`, event
-`summary`) and keeps edge writes cheap.
+A brain is one domain, even when it holds multiple entity shapes.
+Model it as a **single `brain` app with several types**. Synap 0.2's
+multi-type `init_app` gives each type its own vectorizer-aware schema
+while keeping cross-type queries, atomic cross-type writes, and a
+single namespace the agent has to remember.
 
-### `brain.pages` — multi-type nodes
-
-> Create brain.pages with types concept / person / company / paper.
-> Shared fields: title, slug, compiled_truth, tags, updated_at.
-> People also have org (ref). Companies have founded_at.
+The types: `concept`, `person`, `company`, `paper` are **nodes**;
+`link` is a typed **edge**; `event` is an append-only observation.
 
 ```json
 {"tool": "init_app", "args": {
-  "app": "brain.pages",
+  "app": "brain",
   "types": {
     "concept": [
       {"name": "slug",           "value_type": "string", "indexed": true, "required": true},
@@ -63,66 +60,57 @@ vectorizer run only on the long-text fields (`compiled_truth`, event
       {"name": "published_at",   "value_type": "date",   "indexed": true},
       {"name": "tags",           "value_type": "array"},
       {"name": "updated_at",     "value_type": "date",   "indexed": true, "default": "now"}
+    ],
+    "link": [
+      {"name": "from",     "value_type": "ref",  "indexed": true, "required": true},
+      {"name": "to",       "value_type": "ref",  "indexed": true, "required": true},
+      {"name": "rel_type", "value_type": "enum",
+       "enum_values": ["works_at", "attended", "cites", "invested_in", "founded", "advises", "mentions"],
+       "indexed": true, "required": true},
+      {"name": "since",    "value_type": "date", "indexed": true},
+      {"name": "note",     "value_type": "string"}
+    ],
+    "event": [
+      {"name": "page",    "value_type": "ref",    "indexed": true, "required": true},
+      {"name": "when",    "value_type": "date",   "indexed": true, "required": true, "default": "now"},
+      {"name": "source",  "value_type": "string"},
+      {"name": "summary", "value_type": "string", "vectorized": true, "required": true}
     ]
   }
 }}
 ```
 
-`updated_at` uses `default: "now"` — the agent doesn't have to set it
-on write, and `value_type: date` rejects garbage like `"yesterday"`
-at the boundary. `authors` and `org` are `ref` fields — Synap 0.2's
-`expand_refs` can follow them in a single query (see §4).
+Why one app:
 
-### `brain.links` — typed edges
+- **Atomic cross-type writes.** Creating a paper and its author edges
+  in the same `write` is all-or-nothing.
+- **Unified search surface.** "Anything about transformers" returns
+  concepts, papers, and events in one `search` call — no per-app
+  fan-out.
+- **Agent cognition.** The agent remembers one namespace, not three.
+- **Vec isolation is still per-type.** Synap stores embeddings in
+  separate vec tables per `(app, type, field)`, so the `compiled_truth`
+  space for `person` doesn't contaminate the one for `concept`.
 
-```json
-{"tool": "init_app", "args": {
-  "app": "brain.links",
-  "fields": [
-    {"name": "from",     "value_type": "ref", "indexed": true, "required": true},
-    {"name": "to",       "value_type": "ref", "indexed": true, "required": true},
-    {"name": "rel_type", "value_type": "enum",
-     "enum_values": ["works_at", "attended", "cites", "invested_in", "founded", "advises", "mentions"],
-     "indexed": true, "required": true},
-    {"name": "since",    "value_type": "date",  "indexed": true},
-    {"name": "note",     "value_type": "string"}
-  ]
-}}
-```
+Only go multi-app when the domains are genuinely independent (a
+personal `brain` and a shared `team_wiki`, say). Related entity types
+of the same domain belong in one app.
 
-Keeping edges in their own app (rather than inline arrays on each
-page) means a single `query brain.links filter=[rel_type eq works_at]
-expand_refs=1` gives you every employment relationship in the graph
-with both endpoints hydrated — no N+1.
-
-### `brain.events` — append-only timeline
-
-```json
-{"tool": "init_app", "args": {
-  "app": "brain.events",
-  "fields": [
-    {"name": "page",    "value_type": "ref",    "indexed": true, "required": true},
-    {"name": "when",    "value_type": "date",   "indexed": true, "required": true, "default": "now"},
-    {"name": "source",  "value_type": "string"},
-    {"name": "summary", "value_type": "string", "vectorized": true, "required": true}
-  ]
-}}
-```
-
-`summary` is vectorized so `search rank=time_decay` naturally
-surfaces *recent and relevant* events — the default mode for "what's
-new about X?" questions.
+`updated_at: date` with `default: "now"` has the server stamp it on
+every create; `value_type: date` rejects garbage like `"yesterday"` at
+the boundary. `authors` and `org` are `ref` fields — `expand_refs`
+follows them in a single query (see §4).
 
 ## 2. Ingest
 
 > Read ~/notes/transformers.md, decide it's a concept page, and add
-> it. Mention any papers or people it references.
+> it.
 
 ```json
 {"tool": "read_file", "args": {"path": "~/notes/transformers.md"}}
 // agent parses the markdown, extracts title/tags/body, then:
 {"tool": "write", "args": {
-  "app": "brain.pages",
+  "app": "brain",
   "ops": [
     {"op": "create", "type": "concept",
      "data": {
@@ -143,27 +131,38 @@ new about X?" questions.
 only when you actually need fields back (`default`-filled or partial
 update).
 
-### Batching related nodes + edges
+### Nodes + edges in one atomic batch
 
-When one source yields multiple entities, batch them so they commit
-atomically:
+Because `link` lives in the same app, edges can be written *in the
+same `write` call* as their nodes — one transaction, no split-brain:
 
 ```json
 {"tool": "write", "args": {
-  "app": "brain.pages",
+  "app": "brain",
   "ops": [
-    {"op": "create", "type": "paper",  "data": {"slug": "attention-is-all-you-need",
-                                                "title": "Attention Is All You Need",
-                                                "published_at": "2017-06-12"}},
-    {"op": "create", "type": "person", "data": {"slug": "vaswani", "title": "Ashish Vaswani"}}
+    {"op": "create", "type": "paper",
+     "data": {"slug": "attention-is-all-you-need",
+              "title": "Attention Is All You Need",
+              "published_at": "2017-06-12"},
+     "returning": ["entity_id"]},
+    {"op": "create", "type": "person",
+     "data": {"slug": "vaswani", "title": "Ashish Vaswani"},
+     "returning": ["entity_id"]}
   ]
+}}
+// → paper_id = pg_p1, author_id = pg_v1
+{"tool": "write", "args": {
+  "app": "brain",
+  "ops": [{
+    "op": "create", "type": "link",
+    "data": {"from": "brain/pg_p1", "to": "brain/pg_v1", "rel_type": "cites"}
+  }]
 }}
 ```
 
-Then wire the edge in a second call (after capturing both entity_ids
-from the first response). Cross-app writes can't batch atomically, but
-each app's ops are all-or-nothing internally — good enough for idea
-ingestion.
+(The second call exists only because the agent needs the entity_ids
+from the first response. If you already know them, fold it into a
+single batch.)
 
 ## 3. Query by structure
 
@@ -171,7 +170,7 @@ ingestion.
 
 ```json
 {"tool": "query", "args": {
-  "app":     "brain.pages",
+  "app":     "brain",
   "type":    "concept",
   "filters": [{"field": "tags", "op": "array_contains", "value": "nlp"}],
   "order_by":[{"field": "updated_at", "direction": "desc"}],
@@ -179,31 +178,38 @@ ingestion.
 }}
 ```
 
-### Cross-type catalog (Karpathy `index.md` pattern)
+### Cross-type catalog
 
-One `query` per type surfaces the whole brain at a glance:
+Omit `type` to scan the whole brain:
 
 ```json
 {"tool": "query", "args": {
-  "app":      "brain.pages",
-  "select":   ["slug", "title", "type", "updated_at"],
+  "app":      "brain",
+  "filters":  [{"or": [
+    {"field": "tags", "op": "array_contains", "value": "nlp"},
+    {"field": "tags", "op": "array_contains", "value": "deep-learning"}
+  ]}],
   "order_by": [{"field": "updated_at", "direction": "desc"}],
+  "select":   ["slug", "title", "updated_at"],
   "limit":    100
 }}
 ```
 
-For a per-type tally (how much does the brain know?) use `aggregate`:
+For a per-type tally (how much does the brain know?):
 
 ```json
 {"tool": "query", "args": {
-  "app":       "brain.pages",
+  "app":       "brain",
   "aggregate": [{"fn": "count", "as": "pages"}],
-  "group_by":  "type"
+  "group_by":  "entity_type"
 }}
 // TSV: key       pages
 //      concept   128
 //      person    42
+//      company   15
 //      paper     71
+//      link      203
+//      event     640
 ```
 
 ## 4. Graph traversal
@@ -212,7 +218,8 @@ For a per-type tally (how much does the brain know?) use `aggregate`:
 
 ```json
 {"tool": "query", "args": {
-  "app":     "brain.links",
+  "app":     "brain",
+  "type":    "link",
   "filters": [
     {"field": "rel_type", "op": "eq",     "value": "works_at"},
     {"field": "to",       "op": "ref_to", "value": "pg_acme"}
@@ -235,7 +242,7 @@ in the loop anyway:
 ```json
 // Step 1: meetings Alice attended.
 {"tool": "query", "args": {
-  "app": "brain.links",
+  "app": "brain", "type": "link",
   "filters": [
     {"field": "rel_type", "op": "eq",       "value": "attended"},
     {"field": "from",     "op": "ref_from", "value": "pg_alice"}
@@ -246,7 +253,7 @@ in the loop anyway:
 
 // Step 2: everyone else who attended those same meetings.
 {"tool": "query", "args": {
-  "app": "brain.links",
+  "app": "brain", "type": "link",
   "filters": [
     {"field": "rel_type", "op": "eq", "value": "attended"},
     {"field": "to",       "op": "in", "value": ["m1", "m2"]},
@@ -259,14 +266,17 @@ in the loop anyway:
 
 ### Orphan detection
 
-Pages that no edge points at — likely candidates for pruning or
-stronger cross-references:
+Pages no edge points at — likely candidates for pruning or stronger
+cross-references. Scoped to node types to skip edges and events:
 
 ```json
 {"tool": "query", "args": {
-  "app":     "brain.pages",
-  "filters": [{"field": "", "op": "orphan", "value": true}],
-  "select":  ["slug", "title", "type", "updated_at"]
+  "app":     "brain",
+  "filters": [
+    {"field": "entity_type", "op": "in", "value": ["concept", "person", "company", "paper"]},
+    {"field": "",            "op": "orphan", "value": true}
+  ],
+  "select":  ["slug", "title", "updated_at"]
 }}
 ```
 
@@ -276,7 +286,7 @@ stronger cross-references:
 
 ```json
 {"tool": "search", "args": {
-  "app":        "brain.pages",
+  "app":        "brain",
   "query_text": "agent framework design patterns",
   "rank":       "relevance",
   "limit":      10
@@ -285,12 +295,13 @@ stronger cross-references:
 
 ### "What's new about Alice?"
 
-Events were modelled separately precisely so freshness works
-naturally — `time_decay` blends similarity with recency:
+Events are a distinct type precisely so freshness works naturally —
+`time_decay` blends similarity with recency:
 
 ```json
 {"tool": "search", "args": {
-  "app":        "brain.events",
+  "app":        "brain",
+  "type":       "event",
   "query_text": "Alice",
   "filters":    [{"field": "page", "op": "ref_to", "value": "pg_alice"}],
   "rank":       "time_decay",
@@ -302,46 +313,44 @@ naturally — `time_decay` blends similarity with recency:
 
 As new evidence arrives, *update* the page's `compiled_truth` (the
 current understanding) and *append* an event explaining what changed.
-The page reflects the latest belief; events preserve the why.
+One atomic `write` against the brain:
 
 ```json
 {"tool": "write", "args": {
-  "app": "brain.pages",
-  "ops": [{
-    "op": "update",
-    "entity_id": "pg_transformers",
-    "data": {"compiled_truth": "…updated narrative with new findings…"}
-  }]
-}}
-{"tool": "write", "args": {
-  "app": "brain.events",
-  "ops": [{
-    "op": "create",
-    "data": {
-      "page":    "brain.pages/pg_transformers",
-      "source":  "paper:arxiv/2406.12345",
-      "summary": "Revised understanding: FlashAttention-2 supplants the naïve attention kernel for production inference."
-    }
-  }]
+  "app": "brain",
+  "ops": [
+    {"op": "update", "entity_id": "pg_transformers",
+     "data": {"compiled_truth": "…updated narrative with new findings…"}},
+    {"op": "create", "type": "event",
+     "data": {
+       "page":    "brain/pg_transformers",
+       "source":  "paper:arxiv/2406.12345",
+       "summary": "Revised understanding: FlashAttention-2 supplants the naïve attention kernel for production inference."
+     }}
+  ]
 }}
 ```
 
 The update is server-stamped (`default: "now"` on `updated_at`);
-event `when` is auto-set the same way.
+event `when` is auto-set the same way. Both land or both don't — the
+page reflects the latest belief and the event preserves the why.
 
 ## Design tips
 
-- **Edges > arrays**: store relationships in `brain.links`, not as
-  inline `related: [ref1, ref2]` arrays. Typed edges (`rel_type`)
-  let you ask *why* they're connected; inline arrays don't.
-- **Vectorize selectively**: `compiled_truth` and event `summary` are
+- **One app, many types.** A knowledge domain is one namespace. Use
+  multi-type `init_app` — don't split into `brain.pages` /
+  `brain.links` / `brain.events`. Atomic cross-type writes, unified
+  search, and simpler agent mental model all collapse into this.
+- **Edges as a type, not as inline ref arrays.** Storing relationships
+  as `link` entities (with typed `rel_type`) lets you ask *why* two
+  pages are connected; inline `related: [ref1, ref2]` arrays don't.
+- **Vectorize selectively.** `compiled_truth` and event `summary` are
   worth embedding; `slug`, `tags`, `rel_type` are not — FTS5 keyword
   matching handles short strings better than dense vectors.
-- **`expand_refs` + dot-path `select` is the win**: on a 100-edge
+- **`expand_refs` + dot-path `select` is the win.** On a 100-edge
   query, one round-trip returns target titles; without it you'd fire
   100 follow-up queries and pay token cost for fields you didn't want.
-- **`synap.memories` vs `brain.events`**: memories are *about the
-  user* (preferences, biographical facts). Brain events are *about
-  pages* (observations about external entities). Don't conflate them
-  — the subject field is different and the retention policy is
-  different.
+- **`synap.memories` vs brain events.** Memories are *about the user*
+  (preferences, biographical facts). Brain events are *about pages*
+  (observations on external entities). Keep them separate — the
+  subject and retention policy are different.
