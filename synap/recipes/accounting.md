@@ -112,14 +112,14 @@ call. Response:
     {"field": "category",    "op": "eq",      "value": "food"},
     {"field": "occurred_at", "op": "between", "value": ["2026-04-01", "2026-04-30"]}
   ],
-  "select": ["amount", "description", "occurred_at"]
+  "aggregate": [{"fn": "sum", "field": "amount", "as": "total"}]
 }}
 ```
 
-The agent sums `amount` client-side from TSV. Synap doesn't do SQL
-aggregates in 0.2 — projection + iteration is the pattern.
+TSV out: `total\n48200`. No row materialization, no client-side
+summation.
 
-Or, if you just want the count and a grouped breakdown:
+Grouped breakdown by category:
 
 ```json
 {"tool": "query", "args": {
@@ -127,9 +127,20 @@ Or, if you just want the count and a grouped breakdown:
   "type": "expense",
   "filters": [{"field": "occurred_at", "op": "between",
                "value": ["2026-04-01", "2026-04-30"]}],
-  "count_only": true,
-  "group_by":   "category"
+  "aggregate": [
+    {"fn": "sum", "field": "amount", "as": "total"},
+    {"fn": "count"}
+  ],
+  "group_by": "category"
 }}
+```
+
+TSV out:
+```
+key	total	count
+food	48200	13
+transport	9400	4
+streaming	6500	2
 ```
 
 ## 4. Cross-type net position
