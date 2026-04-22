@@ -4,9 +4,16 @@ title: Install · acpctl
 
 # Install
 
+## Status
+
+`acpctl` is pre-release — the source builds cleanly but no `v*` tag has
+been cut yet, so Homebrew and GitHub release tarballs are not available
+yet. For now, install from source (see below). First tagged release will
+be `v0.1.0`.
+
 ## Platforms
 
-`acpctl` 0.3.x ships prebuilt binaries for:
+Prebuilt binaries (once released) will target:
 
 - `x86_64-unknown-linux-gnu`
 - `x86_64-apple-darwin`
@@ -29,7 +36,7 @@ Pick a release from
 then:
 
 ```sh
-VERSION=0.3.2
+VERSION=0.1.0
 TARGET=aarch64-apple-darwin  # or x86_64-apple-darwin, x86_64-unknown-linux-gnu
 
 curl -L "https://github.com/agent-rt/acpctl/releases/download/v${VERSION}/acpctl-${VERSION}-${TARGET}.tar.gz" \

@@ -58,7 +58,7 @@ acpctl schema                               # self-describing JSON contract
 acpctl call gemini --prompt-file - < p.txt  # tagged NDJSON stream
 ```
 
-Status: **0.3.x preview** — macOS / Linux.
+Status: **pre-release** — no tagged version yet; install from source.
 
 → [Install](/acpctl/install/) · [Quickstart](/acpctl/quickstart/) · [Configuration](/acpctl/configuration/) · [Commands](/acpctl/commands/) · [Troubleshooting](/acpctl/troubleshooting/)
 

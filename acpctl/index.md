@@ -79,6 +79,11 @@ acpctl call gemini --prompt-file - < prompt.txt    # stream events + result
 5. **[Troubleshooting](/acpctl/troubleshooting/)** — exit codes, common
    errors, protocol gotchas.
 
+## Status
+
+Pre-release — no tagged version yet. The source is stable and regressed
+against `gemini --experimental-acp`; first tag will be `v0.1.0`.
+
 ## Links
 
 - Source: [github.com/agent-rt/acpctl](https://github.com/agent-rt/acpctl)
