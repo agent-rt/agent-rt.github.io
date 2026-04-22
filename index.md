@@ -42,6 +42,28 @@ Status: **0.1.x preview** — macOS / Linux.
 
 → [Install](/mcpctl/install/) · [Quickstart](/mcpctl/quickstart/) · [Configuration](/mcpctl/configuration/) · [Commands](/mcpctl/commands/)
 
+### [acpctl](/acpctl/)
+
+*The ACP control utility for AI agents.* Discover, inspect, and invoke any
+[ACP (Agent Client Protocol)][acp] agent with tagged NDJSON streams,
+structured errors, and token-lean defaults. A built-in session daemon
+keeps agent subprocesses alive across CLI invocations — so conversations
+survive between agent turns even when the underlying agent (e.g.
+`gemini-cli`) doesn't support cross-process `session/load`.
+
+```sh
+brew tap agent-rt/tap
+brew install acpctl
+acpctl schema                               # self-describing JSON contract
+acpctl call gemini --prompt-file - < p.txt  # tagged NDJSON stream
+```
+
+Status: **0.3.x preview** — macOS / Linux.
+
+→ [Install](/acpctl/install/) · [Quickstart](/acpctl/quickstart/) · [Configuration](/acpctl/configuration/) · [Commands](/acpctl/commands/) · [Troubleshooting](/acpctl/troubleshooting/)
+
+[acp]: https://agentclientprotocol.com/
+
 ---
 
 More products coming. Source: [github.com/agent-rt](https://github.com/agent-rt).
