@@ -24,21 +24,23 @@ Status: **0.1.x preview** — macOS arm64 only.
 
 → [Install](/synap/install/) · [Quickstart](/synap/quickstart/) · [Recipes](/synap/recipes/) · [Reference](/synap/reference/)
 
-### [cmcp](/cmcp/)
+### [mcpctl](/mcpctl/)
 
-*curl for MCP.* One-shot CLI for calling any Model Context Protocol tool
-from the terminal, reusing your existing Claude / Cursor configs. Built
-for the edge case that happens every ten minutes — iterating on an MCP
-server without restarting your Agent.
+*The MCP control utility for AI agents.* Discover, inspect, and invoke any
+MCP server configured in an agent's environment — without restarts, without
+extra daemons, without extra config. Reads Claude Code, Claude Desktop,
+Cursor, Windsurf, Gemini CLI, and Zed configs automatically.
 
 ```sh
-cargo install cmcp
-cmcp cortex/list_projects
+cargo install mcpctl
+mcpctl server list --json
+mcpctl introspect github --json
+mcpctl github/search_repos --args-json '{"query":"mcp"}'
 ```
 
 Status: **0.1.x preview** — macOS / Linux.
 
-→ [Install](/cmcp/install/) · [Quickstart](/cmcp/quickstart/) · [Configuration](/cmcp/configuration/) · [Commands](/cmcp/commands/)
+→ [Install](/mcpctl/install/) · [Quickstart](/mcpctl/quickstart/) · [Configuration](/mcpctl/configuration/) · [Commands](/mcpctl/commands/)
 
 ---
 
