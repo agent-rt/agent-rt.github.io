@@ -127,4 +127,4 @@ sha256sum AGENTS.md                     # unchanged
 
 - Browse [Commands](/skillctl/commands/) for the full subcommand reference.
 - Read the [protocol spec](https://github.com/agent-rt/skillctl/blob/main/PROTOCOL.md) for the wire-level contract any conformant gateway must implement.
-- Pair with [`memoryctl`](/memoryctl/) — both tools coexist in the same `AGENTS.md` with independent managed blocks.
+- Pair with [`memctl`](/memctl/) — both tools coexist in the same `AGENTS.md` with independent managed blocks.

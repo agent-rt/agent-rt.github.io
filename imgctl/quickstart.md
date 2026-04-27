@@ -109,4 +109,4 @@ Codes are documented and stable. Agents can branch on `code` without prose match
 ## What's next
 
 - [Commands](/imgctl/commands/) — full reference for all 16 subcommands.
-- Use alongside [`memoryctl`](/memoryctl/) — capture visual-diff thresholds as `feedback` entries; recall them across project work.
+- Use alongside [`memctl`](/memctl/) — capture visual-diff thresholds as `feedback` entries; recall them across project work.

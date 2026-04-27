@@ -84,7 +84,7 @@ Status: **0.1.x preview** — macOS / Linux.
 
 → [Install](/skillctl/install/) · [Quickstart](/skillctl/quickstart/) · [Commands](/skillctl/commands/)
 
-### [memoryctl](/memoryctl/)
+### [memctl](/memctl/)
 
 *Persistent agent memory layer — cross-tool, cross-project, cross-session.*
 Topic-based markdown stream with timestamped, attributed entries. Seven
@@ -96,15 +96,15 @@ repo inherits the lore. Independent `AGENTS.md` block coexists with
 
 ```sh
 brew tap agent-rt/tap
-brew install memoryctl
-memoryctl save --type decision --topic api-conventions \
+brew install memctl
+memctl save --type decision --topic api-conventions \
   "POST /payments must include Idempotency-Key header"
-memoryctl list --format tsv
+memctl list --format tsv
 ```
 
 Status: **0.1.x preview** — macOS / Linux.
 
-→ [Install](/memoryctl/install/) · [Quickstart](/memoryctl/quickstart/) · [Commands](/memoryctl/commands/)
+→ [Install](/memctl/install/) · [Quickstart](/memctl/quickstart/) · [Commands](/memctl/commands/)
 
 ### [imgctl](/imgctl/)
 

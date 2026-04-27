@@ -35,11 +35,11 @@ skillctl show rust/review                     # full SKILL.md
 | Tool | Layer |
 |---|---|
 | **`skillctl`** | Curated capability bundles (skills + profiles) |
-| [`memoryctl`](/memoryctl/) | Persistent agent memory (lessons / decisions / facts) |
+| [`memctl`](/memctl/) | Persistent agent memory (lessons / decisions / facts) |
 | [`acpctl`](/acpctl/) | ACP agent invocation |
 | [`mcpctl`](/mcpctl/) | MCP server invocation |
 
-`skillctl` and `memoryctl` are independent — same `AGENTS.md` can host both managed blocks; either works without the other.
+`skillctl` and `memctl` are independent — same `AGENTS.md` can host both managed blocks; either works without the other.
 
 ## Get started
 

@@ -35,7 +35,7 @@ Existing image tools (ImageMagick, ffmpeg, …) weren't built for AI agents — 
 |---|---|
 | **`imgctl`** | Image processing & visual diagramming |
 | [`skillctl`](/skillctl/) | Curated capability bundles |
-| [`memoryctl`](/memoryctl/) | Persistent agent memory |
+| [`memctl`](/memctl/) | Persistent agent memory |
 | [`acpctl`](/acpctl/) | ACP agent invocation |
 | [`mcpctl`](/mcpctl/) | MCP server invocation |
 
