@@ -64,6 +64,68 @@ Status: **pre-release** — no tagged version yet; install from source.
 
 [acp]: https://agentclientprotocol.com/
 
+### [skillctl](/skillctl/)
+
+*Profile-driven Agent skill manager and protocol gateway.* Lets users curate
+skill bundles once and apply them to projects with `skillctl init <profile>`.
+Exposes a stable shell-level protocol any agent can consume through four
+commands documented in `AGENTS.md`. Mandatory `namespace/name` IDs eliminate
+collisions; the managed `AGENTS.md` block is byte-stable across skill churn,
+keeping prompt caches warm.
+
+```sh
+brew tap agent-rt/tap
+brew install skillctl
+skillctl init rust-cli                         # apply a profile to a project
+skillctl list --project --format tsv           # 4-col agent catalog
+```
+
+Status: **0.1.x preview** — macOS / Linux.
+
+→ [Install](/skillctl/install/) · [Quickstart](/skillctl/quickstart/) · [Commands](/skillctl/commands/)
+
+### [memoryctl](/memoryctl/)
+
+*Persistent agent memory layer — cross-tool, cross-project, cross-session.*
+Topic-based markdown stream with timestamped, attributed entries. Seven
+typed memory kinds (`lesson`, `decision`, `fact`, `feedback`, `reference`,
+`user`, `project`) and three scopes (`global`, `project`, `agent:<name>`).
+Project-scoped memory commits with code — every team member who clones the
+repo inherits the lore. Independent `AGENTS.md` block coexists with
+`skillctl`.
+
+```sh
+brew tap agent-rt/tap
+brew install memoryctl
+memoryctl save --type decision --topic api-conventions \
+  "POST /payments must include Idempotency-Key header"
+memoryctl list --format tsv
+```
+
+Status: **0.1.x preview** — macOS / Linux.
+
+→ [Install](/memoryctl/install/) · [Quickstart](/memoryctl/quickstart/) · [Commands](/memoryctl/commands/)
+
+### [imgctl](/imgctl/)
+
+*Agent-first image processing CLI.* Single static Rust binary with 16
+commands for editing (convert, resize, crop, compose), annotation (text,
+arrows, boxes, blur), analysis (compare, diff, histogram, palette), and
+diagram rendering (Mermaid via headless Chrome). TSV output by default,
+`--json` for structured consumption, stable error codes everywhere.
+
+```sh
+brew tap agent-rt/tap
+brew install imgctl
+imgctl resize -i in.png -o out.png --width 400 --fit contain --json
+imgctl mermaid -i flow.mmd -o flow.png --width 1200
+imgctl diff -i baseline.png -i current.png -o diff.png --threshold 0.05
+```
+
+Status: **0.1.x preview** — macOS / Linux.
+
+→ [Install](/imgctl/install/) · [Quickstart](/imgctl/quickstart/) · [Commands](/imgctl/commands/)
+
 ---
 
 More products coming. Source: [github.com/agent-rt](https://github.com/agent-rt).
