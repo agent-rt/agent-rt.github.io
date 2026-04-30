@@ -49,8 +49,8 @@ no GPG / age / sops toolchain in your PATH.
 
     # File-style secrets — written to specific paths with custom modes.
     fileSecrets = {
-      "SSH_KEY_WORK" = { path = ".ssh/work"; mode = "0600"; };
-      "SSH_KEY_HOME"      = { path = ".ssh/home";      mode = "0600"; };
+      SSH_KEY_WORK = { path = ".ssh/work"; mode = "0600"; };
+      SSH_KEY_HOME = { path = ".ssh/home"; mode = "0600"; };
     };
   };
 
@@ -77,7 +77,7 @@ sops = {
   defaultSopsFile = ../../secrets/work.yaml;
   secrets.github_token = {};
   secrets.github_publish_token = {};
-  secrets."SSH_KEY_WORK" = {
+  secrets."ssh_keys/work" = {
     path = "${homeDir}/.ssh/work";
     mode = "0600";
   };
@@ -93,7 +93,7 @@ programs.secretctl = {
     GITHUB_PUBLISH_TOKEN = { secretName = "github_publish_token"; };
   };
   fileSecrets = {
-    "SSH_KEY_WORK" = { path = ".ssh/work"; mode = "0600"; };
+    SSH_KEY_WORK = { path = ".ssh/work"; mode = "0600"; };
   };
 };
 ```
@@ -118,10 +118,12 @@ for key in github_token github_publish_token github_homebrew_tap_token; do
     | SECRETCTL_BATCH=1 secretctl add "$key" --tag git
 done
 
-# Multi-line — SSH keys
-for name in work msn; do
-  yq -r ".ssh_keys.${name}" /tmp/sops-dump.yaml > /tmp/ssh-key
-  EDITOR="cp /tmp/ssh-key" secretctl add "ssh_keys/${name}" --tag ssh --editor
+# Multi-line — SSH keys (rename source labels to neutral targets)
+declare -A SSH_RENAME=([work]=SSH_KEY_WORK [home]=SSH_KEY_HOME)
+for src in "${!SSH_RENAME[@]}"; do
+  dst="${SSH_RENAME[$src]}"
+  yq -r ".ssh_keys.${src}" /tmp/sops-dump.yaml > /tmp/ssh-key
+  EDITOR="cp /tmp/ssh-key" secretctl add "$dst" --tag ssh --editor
   rm /tmp/ssh-key
 done
 ```
