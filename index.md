@@ -64,6 +64,28 @@ Status: **pre-release** — no tagged version yet; install from source.
 
 [acp]: https://agentclientprotocol.com/
 
+### [secretctl](/secretctl/)
+
+*Agent-first single-binary secret manager for macOS.* Tokens, API keys,
+and SSH keys live in a single AES-256-GCM encrypted file under
+`~/.secretctl/`. Agents get **capability** access — they `exec` commands
+with secrets injected as env vars but never see plaintext. Project-local
+`.secretctl.toml` allowlist gates which `tags` reach which `commands`,
+including the `--only` bypass path. Encrypted metadata: `strings(1)` on
+the vault file shows nothing useful.
+
+```sh
+brew tap agent-rt/tap
+brew install secretctl
+secretctl init                                # passphrase + Keychain
+secretctl add OPENAI_API_KEY --tag ai
+secretctl exec --tag ai -- python main.py     # env-injected, audited
+```
+
+Status: **0.1.x preview** — macOS arm64 only.
+
+→ [Install](/secretctl/install/) · [Quickstart](/secretctl/quickstart/) · [Commands](/secretctl/commands/)
+
 ### [skillctl](/skillctl/)
 
 *Profile-driven Agent skill manager and protocol gateway.* Lets users curate
