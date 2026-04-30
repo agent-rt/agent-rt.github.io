@@ -4,7 +4,7 @@ title: Commands · secretctl
 
 # Commands
 
-`secretctl` ships 8 commands. Use `secretctl --help` for the inline summary.
+`secretctl` ships 11 commands. Use `secretctl --help` for the inline summary.
 
 ## Exit codes
 
@@ -116,6 +116,21 @@ A line is appended to `~/Library/Logs/secretctl.log`:
 
 Argv beyond `argv[0]` is **never** logged.
 
+## `materialize`
+
+```sh
+secretctl materialize NAME --out PATH [--mode MODE] [--mkdir]
+```
+
+Decrypt a single secret and write its value byte-for-byte to `PATH`. No
+trailing newline is appended (so SSH private keys round-trip cleanly).
+Default mode is `0600`; `--mkdir` creates parent directories with mode
+`0700` if they don't exist.
+
+This is the primitive used by the Home Manager module to populate
+`~/.ssh/*` and `~/.config/secretctl/env/*` at activation time. See
+[Nix integration](/secretctl/nix/) for the declarative wrapper.
+
 ## `render`
 
 ```sh
@@ -125,6 +140,37 @@ secretctl render TEMPLATE --out PATH
 Reads `TEMPLATE`, replaces `${NAME}` with the value of secret `NAME`, writes the result to `PATH` with mode `0600`. Use `$$` to emit a literal `$`. Refuses to overwrite an existing `PATH`.
 
 Useful for `.npmrc`, `.env`, and any config tool that doesn't read env vars at runtime.
+
+## `mcp`
+
+```sh
+secretctl mcp [--cwd PATH] [--allow-secret-read]
+```
+
+Start an MCP (Model Context Protocol) server on stdio. Three tools by
+default — `list_secrets`, `check_secret_available`, `run_with_secrets`.
+`--allow-secret-read` adds a fourth tool, `get_secret`, gated by
+per-call Touch ID; the server refuses to start without biometry
+hardware.
+
+The same `.secretctl.toml` allowlist gates `run_with_secrets` as it
+does the CLI `exec`, so an agent can only execute commands you've
+explicitly trusted with the matching tags.
+
+`--cwd PATH` overrides the project root used when looking up
+`.secretctl.toml`; defaults to the server's current working directory.
+
+## `reinstall-keychain`
+
+```sh
+secretctl reinstall-keychain [--no-touch-id]
+```
+
+Rebuild the macOS Keychain protector. Existing keychain ACLs cannot be
+modified in place, so use this command after upgrading from a version
+of `secretctl` whose ACL doesn't suit you (e.g. enabling Touch ID on a
+vault that was originally created with the trusted-app ACL, or vice
+versa).
 
 ## `reveal`
 
