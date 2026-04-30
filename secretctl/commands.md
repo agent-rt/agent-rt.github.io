@@ -4,7 +4,7 @@ title: Commands · secretctl
 
 # Commands
 
-`secretctl` ships 11 commands. Use `secretctl --help` for the inline summary.
+`secretctl` ships 13 commands. Use `secretctl --help` for the inline summary.
 
 ## Exit codes
 
@@ -159,6 +159,34 @@ explicitly trusted with the matching tags.
 
 `--cwd PATH` overrides the project root used when looking up
 `.secretctl.toml`; defaults to the server's current working directory.
+
+## `key add-keychain-protector`
+
+```sh
+secretctl key add-keychain-protector [--touch-id|--no-touch-id]
+```
+
+Append a new keychain protector to `master.key` for the current
+machine. Used when introducing a second Mac into a shared vault: clone
+the vault repo, run this command, then `secretctl sync` so the new
+protector entry reaches the other machines too. Each Mac ends up with
+its own random wrapping_key in its own local Keychain — no shared key
+material crosses the network. See [Cross-Mac sync](/secretctl/sync/).
+
+## `sync`
+
+```sh
+secretctl sync
+```
+
+Run the git ceremony for `~/.secretctl/`: `git add -A`, commit any
+local changes (with a `vault: <hostname> <ts>` message), `git pull
+--ff-only`, then `git push`. Audit log records the outcome.
+
+Requires `~/.secretctl/.git` to exist (you set this up once with `git
+init` + `git remote add origin …`). If the remote has commits you
+don't have *and* you have local commits, the pull is aborted; resolve
+the conflict manually with `git checkout --theirs/--ours vault`.
 
 ## `reinstall-keychain`
 

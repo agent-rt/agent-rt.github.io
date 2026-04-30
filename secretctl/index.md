@@ -42,8 +42,9 @@ secretctl render .npmrc.tmpl --out ~/.npmrc   # ${NAME} substitution
 
 1. **[Install](/secretctl/install/)** — Homebrew (recommended) or release tarball.
 2. **[Quickstart](/secretctl/quickstart/)** — vault to first injected `npm install` in under two minutes.
-3. **[Commands](/secretctl/commands/)** — reference for all 11 commands.
+3. **[Commands](/secretctl/commands/)** — reference for all 13 commands.
 4. **[Nix integration](/secretctl/nix/)** — Home Manager module + sops-nix migration.
+5. **[Cross-Mac sync](/secretctl/sync/)** — push the vault to a private git remote, unlock locally on every Mac.
 
 ## Links
 
