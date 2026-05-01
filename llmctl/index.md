@@ -40,9 +40,15 @@ llmctl -i                                           # REPL with slash commands
 
 `llmctl` is a leaf — it talks HTTP to a model and gets out of the way. Pair with `secretctl exec --tag ai -- llmctl …` to keep API keys out of your shell environment.
 
-## Get started
+## Install
 
-Build from source (release tarballs coming):
+```sh
+brew install agent-rt/tap/llmctl  # macOS arm64 (Apple Silicon) only
+```
+
+Or download the tarball from the [Releases page](https://github.com/agent-rt/llmctl/releases).
+
+Build from source (requires Zig 0.16):
 
 ```sh
 git clone https://github.com/agent-rt/llmctl
@@ -50,8 +56,6 @@ cd llmctl
 zig build -Doptimize=ReleaseSafe
 ./zig-out/bin/llmctl --version
 ```
-
-Requires Zig 0.16.
 
 ## Defaults
 

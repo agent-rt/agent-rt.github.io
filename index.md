@@ -158,12 +158,13 @@ orthogonal. Concurrent multi-model fan-out, sessions + REPL, `--extra`
 passthrough for any provider-specific knob.
 
 ```sh
+brew tap agent-rt/tap
+brew install llmctl
 llmctl "explain recursion"
-llmctl --base-url http://10.0.0.64:8800 --model gemma "hi"
 llmctl --output ndjson -m gpt-4o -m claude-sonnet-4-5 "hi" | jq .
 ```
 
-Status: **0.2.x preview** — build from source.
+Status: **0.2.x preview** — macOS arm64 only.
 
 → [Overview](/llmctl/)
 
