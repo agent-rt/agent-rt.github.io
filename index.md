@@ -148,6 +148,25 @@ Status: **0.1.x preview** — macOS / Linux.
 
 → [Install](/imgctl/install/) · [Quickstart](/imgctl/quickstart/) · [Commands](/imgctl/commands/)
 
+### [llmctl](/llmctl/)
+
+*Fast, pipe-friendly CLI for testing OpenAI-compatible and Anthropic LLM
+endpoints.* One Zig binary speaks Chat Completions, OpenAI-compatible servers
+(llama-server, vLLM, Ollama, …), and Anthropic Messages through a provider
+abstraction where `format × timing` (text/json/ndjson × stream/batch) are
+orthogonal. Concurrent multi-model fan-out, sessions + REPL, `--extra`
+passthrough for any provider-specific knob.
+
+```sh
+llmctl "explain recursion"
+llmctl --base-url http://10.0.0.64:8800 --model gemma "hi"
+llmctl --output ndjson -m gpt-4o -m claude-sonnet-4-5 "hi" | jq .
+```
+
+Status: **0.2.x preview** — build from source.
+
+→ [Overview](/llmctl/)
+
 ---
 
 More products coming. Source: [github.com/agent-rt](https://github.com/agent-rt).
