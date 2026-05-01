@@ -10,9 +10,10 @@ title: llmctl
 llmctl "explain recursion"
 echo "summarize" | llmctl < article.txt
 llmctl --base-url http://10.0.0.64:8800 --model gemma "hi"
-llmctl --output ndjson "hi" | jq .
+llmctl --output ndjson -m gpt-4o -m claude-sonnet-4-5 "hi" | jq .
 llmctl --provider anthropic --model claude-sonnet-4-5 "hi"
-llmctl -i                                          # REPL with slash commands
+llmctl --render markdown "explain monads"           # ANSI-rendered output
+llmctl -i                                           # REPL with slash commands
 ```
 
 ## Why one CLI for every chat API
@@ -21,9 +22,11 @@ llmctl -i                                          # REPL with slash commands
 
 - **Provider as a triple of pure functions** — `builder` / `stream_decoder` / `batch_decoder`. Adding a new provider is three functions, not a new code path. `local` (llama-server), `openai`, `openai-compat`, and `anthropic` ship built-in.
 - **Concurrent multi-model** — repeat `--model` to fan out the same prompt to multiple models in parallel. Output comes back as tagged NDJSON, ready for `jq`.
-- **`format × timing` is orthogonal** — `--output text|json|ndjson` and `--buffer/--no-stream` compose freely. Stream NDJSON to a TUI, buffer JSON for scripting, stream text for humans.
+- **`format × timing` is orthogonal** — `--output text|json|ndjson` and `--buffer/--no-stream` compose freely. Stream NDJSON to a TUI, buffer JSON for scripting, stream text for humans. `--render markdown` post-renders buffered text with ANSI bold/dim/reverse for headings, code, and emphasis.
 - **`--extra` passthrough** — any provider-specific knob (`cache_prompt`, `seed`, `repeat_penalty`, …) goes through type-inferred without a CLI flag for it. `--extra-json '{...}'` for nested objects.
-- **Sessions + REPL** — `llmctl -i` gives a 10-command slash REPL; conversations persist via `--session path.json` and fork via `--save-session`.
+- **Smart error bodies** — 4xx/5xx responses are parsed (OpenAI / Anthropic / FastAPI shapes recognised) and surfaced as a clean one-liner like `Invalid API key [invalid_api_key]` instead of a raw JSON dump.
+- **Sessions + REPL** — `llmctl -i` gives a slash-command REPL; conversations persist via `--session path.json`, fork via `--save-session`. `/dry-run` toggles request-printing mid-session for prompt iteration without burning tokens.
+- **CLI-managed defaults** — `llmctl config get|set|unset|list|path` writes a `key = value` defaults file (atomic, comment-preserving) so any flag can have a project- or user-level fallback.
 - **Single binary** — Zig 0.16, ~1.3 MB, no runtime dependencies.
 
 ## Position in the Agent-RT family
@@ -52,14 +55,43 @@ Requires Zig 0.16.
 
 ## Defaults
 
-`~/.config/llmctl/defaults` — one `key=value` per line — sets fallback values for any flag:
+`~/.config/llmctl/defaults` — one `key = value` per line — sets fallback values applied before CLI parsing (any flag overrides). Recognised keys: `provider`, `model`, `base_url`, `system`, `max_tokens`, `temperature`, `top_p`.
 
 ```
-provider=local
-base-url=http://10.0.0.64:8800
-model=unsloth/gemma-4-26B-A4B-it-GGUF:gemma-4-26B-A4B-it-UD-Q4_K_M
-max-tokens=4096
+provider = local
+base_url = http://10.0.0.64:8800
+model    = unsloth/gemma-4-26B-A4B-it-GGUF:gemma-4-26B-A4B-it-UD-Q4_K_M
+max_tokens = 4096
 ```
+
+Manage the file from the CLI (preserves comments and blank lines, atomic writes):
+
+```sh
+llmctl config list                       # print all currently-set keys
+llmctl config get model                  # print one value
+llmctl config set provider openai        # write/update
+llmctl config unset model
+llmctl config path                       # print resolved file path
+```
+
+Search order: `$LLMCTL_DEFAULTS`, `$XDG_CONFIG_HOME/llmctl/defaults`, `~/.config/llmctl/defaults`.
+
+## REPL slash commands
+
+`llmctl -i` enters an interactive REPL. Inside:
+
+| Command | Effect |
+|---|---|
+| `/help`, `/?` | List all commands |
+| `/exit`, `/quit`, `/q` | Leave the REPL (Ctrl-D also works) |
+| `/clear` | Drop conversation history (keep system prompt) |
+| `/system [<text>]` | Show or set the system prompt |
+| `/model [<name>]` | Show or switch model |
+| `/tokens` | Print accumulated input/output token counts |
+| `/save <path>` / `/load <path>` | Persist or restore the session JSON |
+| `/history` | List current messages |
+| `/info` | Provider, model, system, auto-save, dry-run state |
+| `/dry-run [on\|off]` | Toggle request-printing — next turn prints the body instead of sending |
 
 ## Links
 
